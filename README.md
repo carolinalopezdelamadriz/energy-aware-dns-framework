@@ -10,6 +10,4 @@ This repository contains the implementation of a framework designed to measure t
 - Estimate associated CO₂ emissions
 
 ## Author
-Carolina López De La Madriz
-
-Double Degree in Data Science and Telecommunications Engineering
+Carolina López De La Madriz | Double Degree in Data Science and Telecommunications Engineering
