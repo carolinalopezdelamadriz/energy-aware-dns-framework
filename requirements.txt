@@ -4,4 +4,5 @@ pandas
 matplotlib
 dnspython 
 httpx
-
+requests # para DoH (DNS over HTTPS)
+aioquic # para DoQ (DNS over QUIC)
