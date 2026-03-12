@@ -1,35 +1,23 @@
-import time
-from capture import start_capture, stop_capture
-from browser import open_website
-from analyzer import analyze_total_bytes, analyze_dns_bytes
-import os
-# from dns_test import classic_dns_query  
+from dns_experiment import run_dns_experiment
+from web_experiment import run_web_experiment
 
 
-def run_experiment(url):
-    pcap_path = os.path.join(os.getcwd(), "test_auto.pcap")
+def main():
+    """
+      - Experimentos DNS para DNS clásico, DoH y DoQ.
+      - Un experimento de navegación web con perfilado CDP.
+    """
 
-    print("Starting capture...")
-    capture = start_capture(pcap_path)
+    domain = "bbc.com"
+    url = "https://www.bbc.com"
 
-    time.sleep(10)
+    print("\n=== DNS EXPERIMENTS ===")
+    for proto in ("dns", "doh", "doq"):
+        run_dns_experiment(domain, proto)
 
-    print("Opening browser...")
-    open_website(url)
-
-    print("Stopping capture...")
-    stop_capture(capture)
-    print("File exists:", os.path.exists(pcap_path))
-
-    print("Analyzing traffic...")
-    total = analyze_total_bytes(pcap_path)
-    dns = analyze_dns_bytes(pcap_path)
-
-    print("\n--- Results ---")
-    print(f"Total bytes: {total}")
-    print(f"DNS bytes: {dns}")
+    print("\n=== WEB EXPERIMENT ===")
+    run_web_experiment(url, use_cdp=True)
 
 
 if __name__ == "__main__":
-    run_experiment("https://www.bbc.com")
-    # classic_dns_query("bbc.com")  
+    main()

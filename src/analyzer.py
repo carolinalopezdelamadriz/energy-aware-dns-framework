@@ -1,29 +1,88 @@
-import pyshark
-
+import subprocess
+import re
 
 def analyze_total_bytes(file_path):
-    cap = pyshark.FileCapture(file_path)
+
+    cmd = ["tcpdump", "-r", file_path, "-n"]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
     total_bytes = 0
 
-    for packet in cap:
-        if hasattr(packet, "length"):
-            total_bytes += int(packet.length)
+    for line in result.stdout.split("\n"):
+        match = re.search(r"length (\d+)", line)
+        if match:
+            total_bytes += int(match.group(1))
 
-    cap.close()
+    print("Total bytes captured:", total_bytes)
 
-    print(f"Total bytes captured: {total_bytes}")
     return total_bytes
 
-
 def analyze_dns_bytes(file_path):
-    cap = pyshark.FileCapture(file_path, display_filter="dns")
+
+    cmd = ["tcpdump", "-nn", "-r", file_path, "udp port 53"]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
     dns_bytes = 0
 
-    for packet in cap:
-        if hasattr(packet, "length"):
-            dns_bytes += int(packet.length)
+    for line in result.stdout.split("\n"):
 
-    cap.close()
+        match = re.search(r"length (\d+)", line)
 
-    print(f"DNS bytes captured: {dns_bytes}")
+        if match:
+            dns_bytes += int(match.group(1))
+
+        else:
+            match = re.search(r"\((\d+)\)$", line)
+            if match:
+                dns_bytes += int(match.group(1))
+
+    print("DNS bytes captured:", dns_bytes)
+
     return dns_bytes
+
+
+
+def analyze_https_bytes(file_path):
+
+    cmd = ["tcpdump", "-r", file_path, "port", "443"]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    lines = result.stdout.split("\n")
+
+    https_bytes = 0
+
+    for line in lines:
+        if "length" in line:
+            try:
+                length = int(line.split("length")[1].strip())
+                https_bytes += length
+            except:
+                pass
+
+    print("HTTPS bytes captured:", https_bytes)
+
+    return https_bytes
+
+def analyze_quic_bytes(file_path):
+
+    cmd = [
+    "tcpdump",
+    "-nn",
+    "-r",
+    file_path,
+    "udp port 853 and host 1.1.1.1"
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    quic_bytes = 0
+
+    for line in result.stdout.split("\n"):
+        match = re.search(r"length (\d+)", line)
+        if match:
+            quic_bytes += int(match.group(1))
+
+    return quic_bytes
