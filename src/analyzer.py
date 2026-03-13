@@ -1,7 +1,10 @@
 import subprocess
 import re
 
-def analyze_total_bytes(file_path):
+## Analiza el archivo pcap generado por tcpdump para calcular el total de bytes capturados, los bytes relacionados con DNS, HTTPS y QUIC.
+
+
+def analyze_total_bytes(file_path): ## analisis de trafico total 
 
     cmd = ["tcpdump", "-r", file_path, "-n"]
 
@@ -11,6 +14,7 @@ def analyze_total_bytes(file_path):
 
     for line in result.stdout.split("\n"):
         match = re.search(r"length (\d+)", line)
+        # sumamos todos los bytes capturados en el pcap para medir el trafico real de red
         if match:
             total_bytes += int(match.group(1))
 
@@ -18,7 +22,7 @@ def analyze_total_bytes(file_path):
 
     return total_bytes
 
-def analyze_dns_bytes(file_path):
+def analyze_dns_bytes(file_path): # filtramos por puerto para calcular el tamaño total de las consultas dns
 
     cmd = ["tcpdump", "-nn", "-r", file_path, "udp port 53"]
 
@@ -44,7 +48,7 @@ def analyze_dns_bytes(file_path):
 
 
 
-def analyze_https_bytes(file_path):
+def analyze_https_bytes(file_path): # para medir el trafico asociado a https
 
     cmd = ["tcpdump", "-r", file_path, "port", "443"]
 
@@ -66,7 +70,7 @@ def analyze_https_bytes(file_path):
 
     return https_bytes
 
-def analyze_quic_bytes(file_path):
+def analyze_quic_bytes(file_path): # para medir el trafico asociado a dns over quic (doq)
 
     cmd = [
     "tcpdump",

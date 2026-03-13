@@ -6,12 +6,9 @@ from collections import defaultdict
 
 
 def _build_chrome_driver_with_cdp() -> webdriver.Chrome:
-    """
-    Crea una instancia de Chrome con logging de rendimiento habilitado
-    para poder acceder a los eventos de la Chrome DevTools Protocol.
-    """
+    
     options = Options()
-    # Puedes activar el modo headless si lo prefieres:
+    # activar el modo headless 
     # options.add_argument("--headless=new")
 
     perf_log_prefs = {
@@ -27,10 +24,8 @@ def _build_chrome_driver_with_cdp() -> webdriver.Chrome:
 
 
 def open_website(url, duration: int = 10):
-    """
-    Abre una web simplemente, esperando `duration` segundos.
-    Se mantiene por compatibilidad con el código existente.
-    """
+    #Abre una web simplemente, esperando `duration` segundos para que cargue y se capture tráfico en la red
+    
     driver = webdriver.Chrome()
     try:
         driver.get(url)
@@ -40,14 +35,13 @@ def open_website(url, duration: int = 10):
 
 
 def browse_and_profile(url: str, duration: int = 10):
-    """
-    Abre una web usando Selenium + CDP y devuelve un perfil de tráfico HTTP.
+    #Abre una web usando Selenium + CDP y devuelve un perfil de tráfico HTTP.
 
-    Extrae de los logs de rendimiento de Chrome los eventos
-    `Network.responseReceived` y `Network.loadingFinished`, calculando el
-    tamaño transferido por tipo de recurso (document, script, image, etc.).
+    #  Extrae de los logs de rendimiento de Chrome los eventos
+    # `Network.responseReceived` y `Network.loadingFinished`, calculando el
+    # tamaño transferido por tipo de recurso (document, script, image, etc.).
 
-    Devuelve un diccionario:
+    """Devuelve un diccionario:
         {
             "by_type": {resourceType: bytes, ...},
             "total_bytes": total,

@@ -4,8 +4,7 @@ from web_experiment import run_web_experiment
 
 def main():
     """
-      - Experimentos DNS para DNS clásico, DoH y DoQ.
-      - Un experimento de navegación web con perfilado CDP.
+      Experimentos DNS para DNS clásico, DoH y DoQ
     """
 
     domain = "bbc.com"
