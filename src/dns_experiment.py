@@ -12,6 +12,12 @@ from cfp import bytes_to_cfp, pretty_print_cfp
 
 import random
 
+## 1. iniciar captura
+## 2. ejecutar consultas dns
+## 3. detener captura
+## 4. analizar pcap 
+## 5. calcular huella de carbono
+
 
 def run_dns_experiment(domain: str, protocol: str):
     """
@@ -31,7 +37,7 @@ def run_dns_experiment(domain: str, protocol: str):
     # esperar a que tcpdump esté listo
     time.sleep(1)
 
-    # lanzar varias resoluciones para asegurar tráfico
+    # lanzar varias resoluciones para asegurar tráfico (para evitar cache dns, y que no salgan 0 bytes en capturas --> fuerza consutlas al resolver)
     for _ in range(5):
 
         random_domain = f"{random.randint(1,100000)}.{domain}"

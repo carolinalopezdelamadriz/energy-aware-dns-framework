@@ -18,6 +18,9 @@ def start_capture(output_file, filter_rule=None):
     "port", "853"
     ]
 
+    ## to capture traffic from HTTP (port 80), HTTPS (port 443), DNS (port 53) and DoQ (port 853)
+
+
     if filter_rule:
         cmd.extend(filter_rule.split())
 
@@ -31,5 +34,5 @@ def start_capture(output_file, filter_rule=None):
 
 
 def stop_capture(process):
-    process.terminate()
+    process.terminate() # aqui ya se genera un archivo pcap que contiene todos los paquetes capturados 
     process.wait()

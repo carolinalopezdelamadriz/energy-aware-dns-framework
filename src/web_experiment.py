@@ -9,10 +9,10 @@ from cfp import bytes_to_cfp, pretty_print_cfp
 
 def run_web_experiment(url: str, use_cdp: bool = True):
     """
-    Ejecuta un experimento de navegación web:
-      - Captura tráfico en la interfaz de red (pcap) para obtener bytes totales.
-      - Opcionalmente, usa Selenium+CDP para perfilar tráfico HTTP por tipo
-        de recurso.
+    experimento de navegación web:
+      - Captura tráfico en la interfaz de red (pcap) para obtener bytes totales
+      * usa Selenium+CDP para perfilar tráfico HTTP por tipo
+        de recurso
       - Convierte el volumen total de datos a una métrica CFP.
     """
 

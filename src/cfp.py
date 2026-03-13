@@ -1,9 +1,8 @@
 """
 Simple energy and carbon-footprint model for network traffic.
-
-Todas las constantes están separadas para que puedas ajustarlas
-fácilmente según las fuentes que utilices en la memoria del TFG.
 """
+
+## ajustar constantes en base al modelo final !!!
 
 from dataclasses import dataclass
 
@@ -15,15 +14,14 @@ class CFPResult:
     co2_kg: float
 
 
-# --- Modelo configurable ----------------------------------------------------
+# MODELO CONFIGURABLE
 
-# Energía por byte transferido (J/byte).
-# Sustituye este valor por el que justifiques en el Estado del Arte.
-DEFAULT_ENERGY_PER_BYTE_J = 1e-7  # EJEMPLO: 0.1 µJ por byte
+# Energía por byte transferido (J/byte)
+DEFAULT_ENERGY_PER_BYTE_J = 1e-7  # 0.1 µJ por byte
 
-# Factor de emisión medio de la electricidad (kgCO2e/kWh).
-# De nuevo, deberías ajustarlo a tu referencia (por país / mix energético).
-DEFAULT_CO2_PER_KWH = 0.4  # EJEMPLO: 400 gCO2e/kWh
+# Factor de emisión medio de la electricidad (kgCO2e/kWh)
+# ajustar en funcion de país / mix energético ??
+DEFAULT_CO2_PER_KWH = 0.4  # 400 gCO2e/kWh
 
 
 def bytes_to_cfp(
@@ -32,7 +30,7 @@ def bytes_to_cfp(
     co2_per_kwh: float = DEFAULT_CO2_PER_KWH,
 ) -> CFPResult:
     """
-    Convierte un volumen de datos (bytes) en energía y huella de carbono.
+    volumen de datos (bytes) --> energía y huella de carbono
 
     Fórmulas:
       E[J]   = bytes * energy_per_byte_j
@@ -50,9 +48,7 @@ def bytes_to_cfp(
 
 
 def pretty_print_cfp(label: str, result: CFPResult) -> None:
-    """
-    Imprime en consola un resumen legible del resultado CFP para un experimento.
-    """
+
     print(f"\n--- CFP for {label} ---")
     print(f"Bytes           : {result.bytes}")
     print(f"Energía [kWh]   : {result.energy_kwh:.6e}")
