@@ -1,10 +1,14 @@
 import dns.exception
 import dns.resolver
 
+
+CLASSIC_DNS_RESOLVER = "9.9.9.9"
+
+
 def resolve_classic(domain):
 
     resolver = dns.resolver.Resolver(configure=False)
-    resolver.nameservers = ["8.8.8.8"]
+    resolver.nameservers = [CLASSIC_DNS_RESOLVER]
     resolver.port = 53
 
     try:

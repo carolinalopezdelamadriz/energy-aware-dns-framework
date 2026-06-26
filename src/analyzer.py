@@ -77,7 +77,7 @@ def analyze_quic_bytes(file_path): # para medir el trafico asociado a dns over q
     "-nn",
     "-r",
     file_path,
-    "udp port 853 and host 1.1.1.1"
+    "udp port 853"
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True)

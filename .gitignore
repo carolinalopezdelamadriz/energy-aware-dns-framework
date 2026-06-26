@@ -205,3 +205,25 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# macOS
+.DS_Store
+
+# Local notes and scratch
+notes.txt
+
+# Experiment artifacts (large captures — keep locally, not in git)
+*.pcap
+
+# Matplotlib cache inside result runs
+**/.matplotlib/
+
+# Generated experiment runs (keep reference sample run only)
+results/**/*
+!results/.gitkeep
+!results/run_20260626/
+!results/run_20260626/**
+!results/run_20260626/analysis/
+!results/run_20260626/analysis/**
+!results/archive/
+!results/archive/README.md
