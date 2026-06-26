@@ -211,6 +211,10 @@ __marimo__/
 
 # Local notes and scratch
 notes.txt
+docs/apuntes_personales/
+
+# Local supervisor email material (kept outside GitHub)
+docs/email_tutora/
 
 # Experiment artifacts (large captures — keep locally, not in git)
 *.pcap
@@ -230,3 +234,7 @@ results/**/*
 
 # Re-ignore large captures even inside the tracked sample run
 results/**/*.pcap
+
+# Re-ignore local/cache files after result-run allow rules
+results/**/.DS_Store
+results/**/.matplotlib/

@@ -86,8 +86,6 @@ energy-aware-dns-framework/
 ├── results/
 │   ├── run_20260626/            # Reference sample run (tracked in git)
 │   └── archive/                 # Local-only runs (not committed)
-├── docs/
-│   └── email_tutora/            # Curated figures for supervisor review
 ├── README.md
 └── requirements.txt
 ```
