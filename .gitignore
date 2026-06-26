@@ -227,3 +227,6 @@ results/**/*
 !results/run_20260626/analysis/**
 !results/archive/
 !results/archive/README.md
+
+# Re-ignore large captures even inside the tracked sample run
+results/**/*.pcap
