@@ -1,4 +1,0 @@
-tcpdump -r dns_test.pcap port 53 # to filter by dns
-tcpdump -r dns_test.pcap port 53 | wc -l # to count real number of DNS packets
-tcpdump -r dns_test.pcap -nn port 53 -tttt # to count number of bytes
-
