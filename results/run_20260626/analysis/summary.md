@@ -2,8 +2,6 @@
 
 Carpeta de ejecución: `results/run_20260626`
 
-Resumen rápido de la ejecución: comparación de protocolos DNS, tráfico web capturado y estimación de huella de carbono.
-
 ## Comparación de protocolos DNS
 
 | Protocolo | Muestras | Bytes medios | CO₂ medio (kg) | Sobrecoste vs DNS |
@@ -29,10 +27,3 @@ Resumen rápido de la ejecución: comparación de protocolos DNS, tráfico web c
 | first_party | 5 | 1.6 MB | 20.7% |
 | third_party | 3 | 5.9 MB | 76.4% |
 | tracker_or_ads | 3 | 230.2 KB | 2.9% |
-
-## Figuras generadas
-
-- `fig_dns_avg_bytes.png`
-- `fig_web_traffic_comparison.png`
-- `fig_web_origin_bytes.png`
-- `fig_dashboard.png`
