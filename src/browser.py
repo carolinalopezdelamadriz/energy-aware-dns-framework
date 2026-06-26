@@ -3,6 +3,23 @@ from selenium.webdriver.chrome.options import Options
 import time
 import json
 from collections import defaultdict
+from urllib.parse import urlparse
+
+
+TRACKER_KEYWORDS = (
+    "analytics",
+    "doubleclick",
+    "googletagmanager",
+    "google-analytics",
+    "facebook",
+    "pixel",
+    "ads",
+    "adservice",
+    "tracking",
+    "tracker",
+    "telemetry",
+    "metrics",
+)
 
 
 def _build_chrome_driver_with_cdp() -> webdriver.Chrome:
@@ -32,6 +49,27 @@ def open_website(url, duration: int = 10):
         time.sleep(duration)
     finally:
         driver.quit()
+
+
+def _registered_domain(hostname: str) -> str:
+    parts = hostname.lower().split(".")
+    if len(parts) <= 2:
+        return hostname.lower()
+    return ".".join(parts[-2:])
+
+
+def _classify_resource(page_url: str, resource_url: str) -> str:
+    page_host = urlparse(page_url).hostname or ""
+    resource_host = urlparse(resource_url).hostname or ""
+    resource_lc = resource_url.lower()
+
+    if any(keyword in resource_lc for keyword in TRACKER_KEYWORDS):
+        return "tracker_or_ads"
+    if not resource_host:
+        return "unknown_origin"
+    if _registered_domain(page_host) == _registered_domain(resource_host):
+        return "first_party"
+    return "third_party"
 
 
 def browse_and_profile(url: str, duration: int = 10):
@@ -93,6 +131,7 @@ def browse_and_profile(url: str, duration: int = 10):
                     ) + encoded_len
 
         by_type = defaultdict(int)
+        by_origin = defaultdict(int)
         resources = []
         total_bytes = 0
 
@@ -102,19 +141,24 @@ def browse_and_profile(url: str, duration: int = 10):
             )
             rtype = meta.get("type", "unknown")
             url_resp = meta.get("url", "")
+            origin_class = _classify_resource(url, url_resp)
             by_type[rtype] += size
+            by_origin[origin_class] += size
             total_bytes += size
             resources.append(
                 {
                     "requestId": request_id,
                     "type": rtype,
+                    "origin_class": origin_class,
                     "url": url_resp,
                     "encodedDataLength": size,
                 }
             )
 
         profile = {
+            "url": url,
             "by_type": dict(by_type),
+            "by_origin": dict(by_origin),
             "total_bytes": total_bytes,
             "resources": resources,
         }
