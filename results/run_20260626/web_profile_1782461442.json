@@ -1,0 +1,1206 @@
+{
+  "url": "https://github.com",
+  "by_type": {
+    "Stylesheet": 296766,
+    "Document": 131068,
+    "Script": 1940146,
+    "Font": 257500,
+    "Manifest": 4627,
+    "Ping": 9401,
+    "Other": 17182,
+    "Image": 548077,
+    "Fetch": 826379
+  },
+  "by_origin": {
+    "third_party": 3886050,
+    "first_party": 145096
+  },
+  "total_bytes": 4031146,
+  "resources": [
+    {
+      "requestId": "45569.4",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/light-4fded0090af0ad58.css",
+      "encodedDataLength": 7003
+    },
+    {
+      "requestId": "45569.5",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/light_high_contrast-cf8e26bc17e62ebc.css",
+      "encodedDataLength": 6774
+    },
+    {
+      "requestId": "45569.8",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/primer-primitives-b39ad27f3538ace3.css",
+      "encodedDataLength": 2097
+    },
+    {
+      "requestId": "EE7C1E4BE3442D7A9EA7B398A67ED608",
+      "type": "Document",
+      "origin_class": "first_party",
+      "url": "https://github.com/",
+      "encodedDataLength": 131068
+    },
+    {
+      "requestId": "45569.6",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/dark-06381ff23d863842.css",
+      "encodedDataLength": 6976
+    },
+    {
+      "requestId": "45569.7",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/dark_high_contrast-9023e6605402defb.css",
+      "encodedDataLength": 6817
+    },
+    {
+      "requestId": "45569.11",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/github-eab9c5888b163e42.css",
+      "encodedDataLength": 23216
+    },
+    {
+      "requestId": "45569.9",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/primer-70be7debc79a8eff.css",
+      "encodedDataLength": 43342
+    },
+    {
+      "requestId": "45569.10",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/global-d18f184ea1a06a2c.css",
+      "encodedDataLength": 41116
+    },
+    {
+      "requestId": "45569.13",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/landing-pages-fe5bf6c46284a928.css",
+      "encodedDataLength": 700
+    },
+    {
+      "requestId": "45569.14",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/home-598b25feddb3b4e8.css",
+      "encodedDataLength": 7177
+    },
+    {
+      "requestId": "45569.19",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/85924-f1da419719ff9817.js",
+      "encodedDataLength": 5324
+    },
+    {
+      "requestId": "45569.20",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/34646-9d0d3ae369dd4dc9.js",
+      "encodedDataLength": 7740
+    },
+    {
+      "requestId": "45569.2",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/global-banner-disable-7217e941c22f8801.js",
+      "encodedDataLength": 696
+    },
+    {
+      "requestId": "45569.15",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/high-contrast-cookie-c1770ba1d19e9b2c.js",
+      "encodedDataLength": 982
+    },
+    {
+      "requestId": "45569.17",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/fetch-utilities-9ee17519ce9e3c2d.js",
+      "encodedDataLength": 3315
+    },
+    {
+      "requestId": "45569.21",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/environment-84f18c48c0047c1d.js",
+      "encodedDataLength": 7471
+    },
+    {
+      "requestId": "45569.22",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/runtime-helpers-1dea47d70a855c49.js",
+      "encodedDataLength": 1304
+    },
+    {
+      "requestId": "45569.18",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/78205-3a6ea5cfe3fb27f2.js",
+      "encodedDataLength": 6268
+    },
+    {
+      "requestId": "45569.23",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/296-a6802cc4838f56c7.js",
+      "encodedDataLength": 7479
+    },
+    {
+      "requestId": "45569.24",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/57131-5bc8eba5c8fc646b.js",
+      "encodedDataLength": 5631
+    },
+    {
+      "requestId": "45569.25",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/816-774d14a8cd9b309c.js",
+      "encodedDataLength": 4482
+    },
+    {
+      "requestId": "45569.12",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/site-f661ce4e1ad93272.css",
+      "encodedDataLength": 86630
+    },
+    {
+      "requestId": "45569.16",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/wp-runtime-39856534934af176.js",
+      "encodedDataLength": 22686
+    },
+    {
+      "requestId": "45569.26",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/78121-8c675aec907e252b.js",
+      "encodedDataLength": 7260
+    },
+    {
+      "requestId": "45569.27",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/81683-7fb5e5fde80fac9b.js",
+      "encodedDataLength": 5602
+    },
+    {
+      "requestId": "45569.28",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/64458-8ba18065e4acf029.js",
+      "encodedDataLength": 5087
+    },
+    {
+      "requestId": "45569.29",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/46740-2ad47934ee602ae7.js",
+      "encodedDataLength": 3754
+    },
+    {
+      "requestId": "45569.37",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/79039-2fc69f86776b329f.js",
+      "encodedDataLength": 5353
+    },
+    {
+      "requestId": "45569.31",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/17127-47b029096dee9f22.js",
+      "encodedDataLength": 2604
+    },
+    {
+      "requestId": "45569.36",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/63143-9834767acbea50f3.js",
+      "encodedDataLength": 6342
+    },
+    {
+      "requestId": "45569.3",
+      "type": "Font",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/MonaSansVF-wdth-wght-opsz-902d64c7ad02.woff2",
+      "encodedDataLength": 219702
+    },
+    {
+      "requestId": "45569.32",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/github-elements-5413485ca5039d35.js",
+      "encodedDataLength": 11160
+    },
+    {
+      "requestId": "45569.38",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/88475-2de66b4993b12d53.js",
+      "encodedDataLength": 3993
+    },
+    {
+      "requestId": "45569.39",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/2887-998ebe08466c5cd8.js",
+      "encodedDataLength": 2448
+    },
+    {
+      "requestId": "45569.33",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/element-registry-95cf6ddc8e9c6137.js",
+      "encodedDataLength": 12274
+    },
+    {
+      "requestId": "45569.40",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/62220-11f941b1ef36431f.js",
+      "encodedDataLength": 4250
+    },
+    {
+      "requestId": "45569.30",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/3650-41e3fc7815ffc15d.js",
+      "encodedDataLength": 33243
+    },
+    {
+      "requestId": "45569.41",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/26533-dfc05901dc9c505a.js",
+      "encodedDataLength": 18918
+    },
+    {
+      "requestId": "45569.43",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/9506-3350a51b4d29960b.js",
+      "encodedDataLength": 14966
+    },
+    {
+      "requestId": "45569.42",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/7088-faef35bf48a4c14e.js",
+      "encodedDataLength": 3186
+    },
+    {
+      "requestId": "45569.46",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/23548-e69f9fb0ce108c7f.js",
+      "encodedDataLength": 12591
+    },
+    {
+      "requestId": "45569.44",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/53320-3f507f98e028dd42.js",
+      "encodedDataLength": 4023
+    },
+    {
+      "requestId": "45569.45",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/46287-849123d74be1c4ab.js",
+      "encodedDataLength": 7933
+    },
+    {
+      "requestId": "45569.34",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/react-core-bedcd04b9814a69c.js",
+      "encodedDataLength": 79524
+    },
+    {
+      "requestId": "45569.47",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/89627-e7cc14e3031fcff3.js",
+      "encodedDataLength": 4269
+    },
+    {
+      "requestId": "45569.48",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/55682-153e8edc1a4a674f.js",
+      "encodedDataLength": 4421
+    },
+    {
+      "requestId": "45569.52",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/react-core.a0f1ad21f5bcde8e.module.css",
+      "encodedDataLength": 681
+    },
+    {
+      "requestId": "45569.50",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/99328-21bae9bdede70934.js",
+      "encodedDataLength": 3329
+    },
+    {
+      "requestId": "45569.35",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/react-lib-84a0f3ff745a6c51.js",
+      "encodedDataLength": 89564
+    },
+    {
+      "requestId": "45569.53",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/61272-70a9b1d064908221.js",
+      "encodedDataLength": 4620
+    },
+    {
+      "requestId": "45569.49",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/49029-53e381d07bbb850b.js",
+      "encodedDataLength": 3581
+    },
+    {
+      "requestId": "45569.54",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/notifications-global-6ad97c0f0c98db4a.js",
+      "encodedDataLength": 3526
+    },
+    {
+      "requestId": "45569.55",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/10851-f4c1cace867a368d.js",
+      "encodedDataLength": 5815
+    },
+    {
+      "requestId": "45569.51",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/behaviors-2d95e052f3ff8f8e.js",
+      "encodedDataLength": 56035
+    },
+    {
+      "requestId": "45569.57",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/marketing-essentials-a29fd9f339c54923.js",
+      "encodedDataLength": 780
+    },
+    {
+      "requestId": "45569.56",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/22445-df08e93f1c509e91.js",
+      "encodedDataLength": 6202
+    },
+    {
+      "requestId": "45569.58",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/primer-react-b0550010f97c1c9d.js",
+      "encodedDataLength": 131211
+    },
+    {
+      "requestId": "45569.60",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/97458-23c84353633f2974.js",
+      "encodedDataLength": 3081
+    },
+    {
+      "requestId": "45569.62",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/68033-500b5d6f61c85148.js",
+      "encodedDataLength": 2201
+    },
+    {
+      "requestId": "45569.63",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/41328-c0eb6926392c50ed.js",
+      "encodedDataLength": 6490
+    },
+    {
+      "requestId": "45569.61",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/68751-8ae833d61fa1dcf8.js",
+      "encodedDataLength": 8085
+    },
+    {
+      "requestId": "45569.64",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/41417-0bff39c9c6c981a9.js",
+      "encodedDataLength": 3676
+    },
+    {
+      "requestId": "45569.65",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/45442-5001a7084436fa0f.js",
+      "encodedDataLength": 2950
+    },
+    {
+      "requestId": "45569.59",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/octicons-react-ad81b26f4cfaa5de.js",
+      "encodedDataLength": 106228
+    },
+    {
+      "requestId": "45569.66",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/87954-ab24eaa0fac560d9.js",
+      "encodedDataLength": 25464
+    },
+    {
+      "requestId": "45569.67",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/58636-7f71555aa32b09b2.js",
+      "encodedDataLength": 5647
+    },
+    {
+      "requestId": "45569.69",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/71236-4dec2ee0692c7e78.js",
+      "encodedDataLength": 3885
+    },
+    {
+      "requestId": "45569.70",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/43831-0c0a3c4751ce9329.js",
+      "encodedDataLength": 14103
+    },
+    {
+      "requestId": "45569.71",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/70666-351eb383f1ef4a9d.js",
+      "encodedDataLength": 26801
+    },
+    {
+      "requestId": "45569.72",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/84411-3bb504d04a77d08b.js",
+      "encodedDataLength": 5760
+    },
+    {
+      "requestId": "45569.68",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/400-bcca394c3205bc26.js",
+      "encodedDataLength": 108089
+    },
+    {
+      "requestId": "45569.75",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/40067-36d86b8d3099ca13.js",
+      "encodedDataLength": 1520
+    },
+    {
+      "requestId": "45569.76",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/68735-e704d1c0804bc761.js",
+      "encodedDataLength": 3359
+    },
+    {
+      "requestId": "45569.77",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/83912-9dfa545305f2d3cf.js",
+      "encodedDataLength": 4933
+    },
+    {
+      "requestId": "45569.78",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/32459-02005179a3605747.js",
+      "encodedDataLength": 3385
+    },
+    {
+      "requestId": "45569.74",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/91951-e478fb77a80660de.js",
+      "encodedDataLength": 29194
+    },
+    {
+      "requestId": "45569.79",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/17752-4cebf91a705c443b.js",
+      "encodedDataLength": 9484
+    },
+    {
+      "requestId": "45569.80",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/30444-17f0a566a20fe6a3.js",
+      "encodedDataLength": 20896
+    },
+    {
+      "requestId": "45569.82",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/90388-eab70b7235293e48.js",
+      "encodedDataLength": 6443
+    },
+    {
+      "requestId": "45569.84",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/15766-dd585dbfba5e0102.js",
+      "encodedDataLength": 3900
+    },
+    {
+      "requestId": "45569.85",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/62722-82c6f42b5c4a20db.js",
+      "encodedDataLength": 10174
+    },
+    {
+      "requestId": "45569.83",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/41941-c21e40b0bda27960.js",
+      "encodedDataLength": 22894
+    },
+    {
+      "requestId": "45569.86",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/41823-035a6925e5c9a735.js",
+      "encodedDataLength": 28652
+    },
+    {
+      "requestId": "45569.89",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/primer-react-css.d18392e72f73b5a6.module.css",
+      "encodedDataLength": 34427
+    },
+    {
+      "requestId": "45569.73",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/48761-0e9e5eea3f96cfa0.js",
+      "encodedDataLength": 118400
+    },
+    {
+      "requestId": "45569.81",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/37826-256ef526891f3683.js",
+      "encodedDataLength": 59922
+    },
+    {
+      "requestId": "45569.87",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/75499-c05fb9106c438da3.js",
+      "encodedDataLength": 4473
+    },
+    {
+      "requestId": "45569.90",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/41823.7fa403a269537e2f.module.css",
+      "encodedDataLength": 3646
+    },
+    {
+      "requestId": "45569.93",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/keyboard-shortcuts-dialog.93a97193ca485557.module.css",
+      "encodedDataLength": 641
+    },
+    {
+      "requestId": "45569.98",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/marketing-navigation.d396abab3ee5c5a0.module.css",
+      "encodedDataLength": 2293
+    },
+    {
+      "requestId": "45569.95",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/89564-f99e688f08114514.js",
+      "encodedDataLength": 8581
+    },
+    {
+      "requestId": "45569.191",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/marketing-footer.4a22d7139e0d94c0.module.css",
+      "encodedDataLength": 1980
+    },
+    {
+      "requestId": "45569.91",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/landing-pages.6d565c0a427cbdde.module.css",
+      "encodedDataLength": 15435
+    },
+    {
+      "requestId": "45569.96",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/sessions-59fe6356184773fe.js",
+      "encodedDataLength": 6591
+    },
+    {
+      "requestId": "45569.192",
+      "type": "Manifest",
+      "origin_class": "first_party",
+      "url": "https://github.com/manifest.json",
+      "encodedDataLength": 4627
+    },
+    {
+      "requestId": "45569.88",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/landing-pages-1434b238170d0473.js",
+      "encodedDataLength": 468819
+    },
+    {
+      "requestId": "45569.197",
+      "type": "Font",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/MonaSansMonoVF-wght-04a1e3036ddf.woff2",
+      "encodedDataLength": 37798
+    },
+    {
+      "requestId": "45569.249",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/38963.8add87f5d74d588c.module.css",
+      "encodedDataLength": 634
+    },
+    {
+      "requestId": "45569.251",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/7309.1d191362320c64b5.module.css",
+      "encodedDataLength": 1980
+    },
+    {
+      "requestId": "45569.253",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/70168.7df3eff653abec48.module.css",
+      "encodedDataLength": 2292
+    },
+    {
+      "requestId": "45569.232",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-63160-d2b6073aa911a9ad.js",
+      "encodedDataLength": 17382
+    },
+    {
+      "requestId": "45569.233",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-51591-c57a938d95d8d8e6.js",
+      "encodedDataLength": 5622
+    },
+    {
+      "requestId": "45569.235",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-36423-6ab39b9d9cc1b25e.js",
+      "encodedDataLength": 4014
+    },
+    {
+      "requestId": "45569.234",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-34877-29b1924047abbc51.js",
+      "encodedDataLength": 821
+    },
+    {
+      "requestId": "45569.238",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/50110-e6732c5a52e2a1af.js",
+      "encodedDataLength": 4791
+    },
+    {
+      "requestId": "45569.236",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/44391-4290878095208244.js",
+      "encodedDataLength": 3875
+    },
+    {
+      "requestId": "45569.237",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/2694-2ddb488b02ba1b01.js",
+      "encodedDataLength": 7344
+    },
+    {
+      "requestId": "45569.239",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-43205-d1c874078383b7f7.js",
+      "encodedDataLength": 3902
+    },
+    {
+      "requestId": "45569.240",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-87260-dcfa9fd847be400c.js",
+      "encodedDataLength": 17048
+    },
+    {
+      "requestId": "45569.241",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-52728-56b1927fbd5226c3.js",
+      "encodedDataLength": 679
+    },
+    {
+      "requestId": "45569.242",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-6239-7136f0b1ada0e8c0.js",
+      "encodedDataLength": 6131
+    },
+    {
+      "requestId": "45569.244",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-73937-8881035a44f0c991.js",
+      "encodedDataLength": 802
+    },
+    {
+      "requestId": "45569.245",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-76753-37851406c61aa41d.js",
+      "encodedDataLength": 5348
+    },
+    {
+      "requestId": "45569.243",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-15854-1052efbb1bbb7d21.js",
+      "encodedDataLength": 2860
+    },
+    {
+      "requestId": "45569.247",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/68469-1d696a6971097c86.js",
+      "encodedDataLength": 11584
+    },
+    {
+      "requestId": "45569.248",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/32883-2a603f350c897be2.js",
+      "encodedDataLength": 7194
+    },
+    {
+      "requestId": "45569.246",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-46661-da78757dc8d373a0.js",
+      "encodedDataLength": 4010
+    },
+    {
+      "requestId": "45569.252",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/35158-3b1f6b6eaa980be0.js",
+      "encodedDataLength": 7639
+    },
+    {
+      "requestId": "45569.254",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-lazy-react-partial-marketing-navigation-d73e7688d8ddead7.js",
+      "encodedDataLength": 650
+    },
+    {
+      "requestId": "45569.250",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/93994-894cac06ede3a8be.js",
+      "encodedDataLength": 11699
+    },
+    {
+      "requestId": "45569.255",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-52864-4cd920c8d2eb2f01.js",
+      "encodedDataLength": 1462
+    },
+    {
+      "requestId": "45569.256",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-85825-311c11e4756fbf7d.js",
+      "encodedDataLength": 9831
+    },
+    {
+      "requestId": "45569.258",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/17567-0296f66a7a210493.js",
+      "encodedDataLength": 7632
+    },
+    {
+      "requestId": "45569.259",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-27502-c8e7ec4195761720.js",
+      "encodedDataLength": 2633
+    },
+    {
+      "requestId": "45569.257",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 471
+    },
+    {
+      "requestId": "45569.262",
+      "type": "Other",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/apple-touch-icon-144x144-b882e354c005.png",
+      "encodedDataLength": 14848
+    },
+    {
+      "requestId": "45569.261",
+      "type": "Other",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/favicons/favicon-dark.svg",
+      "encodedDataLength": 1359
+    },
+    {
+      "requestId": "45569.263",
+      "type": "Other",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/favicons/favicon-dark.png",
+      "encodedDataLength": 975
+    },
+    {
+      "requestId": "45569.271",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/mascot-7c495cf9822e0d5c.jpg",
+      "encodedDataLength": 44599
+    },
+    {
+      "requestId": "45569.272",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/cat_eye-75fdf7af6c5dc157.jpg",
+      "encodedDataLength": 32974
+    },
+    {
+      "requestId": "45569.273",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/star-9663b0f4de9d12b1.jpg",
+      "encodedDataLength": 8797
+    },
+    {
+      "requestId": "45569.274",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/head_sss-29270cf59da664ea.jpg",
+      "encodedDataLength": 143169
+    },
+    {
+      "requestId": "45569.275",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/eye_sss-8e43fcedfb9ddaf9.jpg",
+      "encodedDataLength": 7929
+    },
+    {
+      "requestId": "45569.276",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/eye_color-bb27e609004c77cc.jpg",
+      "encodedDataLength": 10847
+    },
+    {
+      "requestId": "45569.277",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/body_sss-ecb11ff73d84fd3b.jpg",
+      "encodedDataLength": 41715
+    },
+    {
+      "requestId": "45569.260",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.268",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-66973-367e824fca28be52.js",
+      "encodedDataLength": 10261
+    },
+    {
+      "requestId": "45569.269",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-96064-3609f9b557b255da.js",
+      "encodedDataLength": 8150
+    },
+    {
+      "requestId": "45569.270",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-35272-3ebf62104182cee2.js",
+      "encodedDataLength": 9523
+    },
+    {
+      "requestId": "45569.279",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/shield_sss-b8d96cf3572b780d.jpg",
+      "encodedDataLength": 22758
+    },
+    {
+      "requestId": "45569.278",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/head_sss-b7e053d8d541a414.jpg",
+      "encodedDataLength": 193964
+    },
+    {
+      "requestId": "45569.281",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/shield_blur-bd197c0b02963d75.jpg",
+      "encodedDataLength": 30479
+    },
+    {
+      "requestId": "45569.280",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/shield_diffuse-41b84e036ea43614.jpg",
+      "encodedDataLength": 10846
+    },
+    {
+      "requestId": "45569.264",
+      "type": "Fetch",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/cat-53c4522f687c1719.glb",
+      "encodedDataLength": 274514
+    },
+    {
+      "requestId": "45569.265",
+      "type": "Fetch",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/duck-b3412913788eaa25.glb",
+      "encodedDataLength": 175015
+    },
+    {
+      "requestId": "45569.266",
+      "type": "Fetch",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/copilot-2addefe0e666acf2.glb",
+      "encodedDataLength": 253624
+    },
+    {
+      "requestId": "45569.267",
+      "type": "Fetch",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/shield-99c76cd962f04df2.glb",
+      "encodedDataLength": 123226
+    },
+    {
+      "requestId": "45569.283",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://api.github.com/_private/browser/stats",
+      "encodedDataLength": 0
+    },
+    {
+      "requestId": "45569.285",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/96037.ea882b6abd983f91.module.css",
+      "encodedDataLength": 909
+    },
+    {
+      "requestId": "45569.286",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://github.githubassets.com/assets/chunk-96037-ca9c92270ecae142.js",
+      "encodedDataLength": 1937
+    },
+    {
+      "requestId": "45569.284",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.288",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.287",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.289",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.290",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.291",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.292",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.293",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.294",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.295",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.297",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.298",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.296",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.299",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.301",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.300",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.302",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    },
+    {
+      "requestId": "45569.303",
+      "type": "Ping",
+      "origin_class": "first_party",
+      "url": "https://collector.github.com/github/collect",
+      "encodedDataLength": 470
+    }
+  ],
+  "site_label": "github",
+  "category": "developer"
+}
