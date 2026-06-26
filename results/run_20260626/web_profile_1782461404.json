@@ -1,0 +1,59 @@
+{
+  "url": "https://www.wikipedia.org",
+  "by_type": {
+    "Document": 31949,
+    "Image": 57692,
+    "Script": 10753,
+    "Other": 1820
+  },
+  "by_origin": {
+    "first_party": 102214
+  },
+  "total_bytes": 102214,
+  "resources": [
+    {
+      "requestId": "1E67E87908888B1E086B9386AD86BFF6",
+      "type": "Document",
+      "origin_class": "first_party",
+      "url": "https://www.wikipedia.org/",
+      "encodedDataLength": 31949
+    },
+    {
+      "requestId": "45373.2",
+      "type": "Image",
+      "origin_class": "first_party",
+      "url": "https://www.wikipedia.org/portal/wikipedia.org/assets/img/Wikipedia-logo-v2@2x.png",
+      "encodedDataLength": 38445
+    },
+    {
+      "requestId": "45373.3",
+      "type": "Image",
+      "origin_class": "first_party",
+      "url": "https://www.wikipedia.org/portal/wikipedia.org/assets/img/sprite-e49fbf32.svg",
+      "encodedDataLength": 19247
+    },
+    {
+      "requestId": "45373.7",
+      "type": "Script",
+      "origin_class": "first_party",
+      "url": "https://www.wikipedia.org/portal/wikipedia.org/assets/js/gt-ie9-507b16b6be.js",
+      "encodedDataLength": 1358
+    },
+    {
+      "requestId": "45373.4",
+      "type": "Script",
+      "origin_class": "first_party",
+      "url": "https://www.wikipedia.org/portal/wikipedia.org/assets/js/index-34f340e24a.js",
+      "encodedDataLength": 9395
+    },
+    {
+      "requestId": "45373.9",
+      "type": "Other",
+      "origin_class": "first_party",
+      "url": "https://www.wikipedia.org/static/favicon/wikipedia.ico",
+      "encodedDataLength": 1820
+    }
+  ],
+  "site_label": "wikipedia",
+  "category": "knowledge"
+}

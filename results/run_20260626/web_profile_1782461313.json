@@ -1,0 +1,612 @@
+{
+  "url": "https://www.bbc.com",
+  "by_type": {
+    "Document": 92314,
+    "Stylesheet": 1825,
+    "Image": 566823,
+    "Script": 1369236,
+    "Font": 402841,
+    "Manifest": 1085,
+    "Fetch": 56623,
+    "XHR": 16164,
+    "Other": 7043
+  },
+  "by_origin": {
+    "first_party": 116784,
+    "third_party": 2208452,
+    "tracker_or_ads": 188718
+  },
+  "total_bytes": 2513954,
+  "resources": [
+    {
+      "requestId": "4ECC4873C870FF1383C081BEAE8D83A3",
+      "type": "Document",
+      "origin_class": "first_party",
+      "url": "https://www.bbc.com/",
+      "encodedDataLength": 92314
+    },
+    {
+      "requestId": "45061.2",
+      "type": "Stylesheet",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/1452dyf5ry7n_.css",
+      "encodedDataLength": 1825
+    },
+    {
+      "requestId": "45061.46",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/grey-placeholder.png",
+      "encodedDataLength": 1216
+    },
+    {
+      "requestId": "45061.47",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://ichef.bbci.co.uk/ace/standard/800/cpsprodpb/3ad8/live/3af527f0-7130-11f1-b1db-af71d47507d6.jpg.webp",
+      "encodedDataLength": 54271
+    },
+    {
+      "requestId": "45061.49",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://ichef.bbci.co.uk/news/640/cpsprodpb/567c/live/234daf40-711d-11f1-8546-8f19e4fe30f4.jpg.webp",
+      "encodedDataLength": 33084
+    },
+    {
+      "requestId": "45061.51",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://ichef.bbci.co.uk/news/640/cpsprodpb/0691/live/dfcb8d20-711f-11f1-8e1d-bbbb1017d210.jpg.webp",
+      "encodedDataLength": 22653
+    },
+    {
+      "requestId": "45061.4",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.bbci.co.uk/frameworks/requirejs/0.13.0/sharedmodules/require.js",
+      "encodedDataLength": 8613
+    },
+    {
+      "requestId": "45061.16",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/17q_b~3ydaszm.js",
+      "encodedDataLength": 13422
+    },
+    {
+      "requestId": "45061.9",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0zrps.tygvix5.js",
+      "encodedDataLength": 3786
+    },
+    {
+      "requestId": "45061.12",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/12c74ag-mf6~6.js",
+      "encodedDataLength": 10526
+    },
+    {
+      "requestId": "45061.10",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/109r62cnsao~p.js",
+      "encodedDataLength": 8698
+    },
+    {
+      "requestId": "45061.11",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/129whz.4qqdg9.js",
+      "encodedDataLength": 10303
+    },
+    {
+      "requestId": "45061.17",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/07fyaq8y722.-.js",
+      "encodedDataLength": 14519
+    },
+    {
+      "requestId": "45061.14",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/08xz26n93o605.js",
+      "encodedDataLength": 11039
+    },
+    {
+      "requestId": "45061.13",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0ihpg_..b~1bz.js",
+      "encodedDataLength": 52127
+    },
+    {
+      "requestId": "45061.15",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/11nmfyzxho2z-.js",
+      "encodedDataLength": 13453
+    },
+    {
+      "requestId": "45061.21",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0i0bw9-2mky53.js",
+      "encodedDataLength": 13904
+    },
+    {
+      "requestId": "45061.18",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/07o1b8gruqdq~.js",
+      "encodedDataLength": 50905
+    },
+    {
+      "requestId": "45061.20",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0v1-gx0p-jmku.js",
+      "encodedDataLength": 34047
+    },
+    {
+      "requestId": "45061.19",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0u3zeufv05b.b.js",
+      "encodedDataLength": 33695
+    },
+    {
+      "requestId": "45061.22",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/11im5dj9qri8g.js",
+      "encodedDataLength": 28088
+    },
+    {
+      "requestId": "45061.23",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0-atc.r2d5ja~.js",
+      "encodedDataLength": 12400
+    },
+    {
+      "requestId": "45061.25",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0d7pesv.8owkr.js",
+      "encodedDataLength": 19708
+    },
+    {
+      "requestId": "45061.24",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/023h3h0opw6ub.js",
+      "encodedDataLength": 50667
+    },
+    {
+      "requestId": "45061.27",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/031v~tqn6ds2w.js",
+      "encodedDataLength": 15703
+    },
+    {
+      "requestId": "45061.28",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/turbopack-0npz1yxjzqifh.js",
+      "encodedDataLength": 5166
+    },
+    {
+      "requestId": "45061.29",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0q5ezcrs.n00e.js",
+      "encodedDataLength": 8722
+    },
+    {
+      "requestId": "45061.31",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0dms3_2qx~4.t.js",
+      "encodedDataLength": 10302
+    },
+    {
+      "requestId": "45061.30",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0ke43ifnhly6y.js",
+      "encodedDataLength": 10539
+    },
+    {
+      "requestId": "45061.32",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/120osb1m1.5.t.js",
+      "encodedDataLength": 12278
+    },
+    {
+      "requestId": "45061.7",
+      "type": "Script",
+      "origin_class": "first_party",
+      "url": "https://gn-web-assets.api.bbc.com/ngas/latest/dotcom-bootstrap.js",
+      "encodedDataLength": 23498
+    },
+    {
+      "requestId": "45061.34",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0aul1ckvus648.js",
+      "encodedDataLength": 19739
+    },
+    {
+      "requestId": "45061.26",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/03os._ahtrv41.js",
+      "encodedDataLength": 60457
+    },
+    {
+      "requestId": "45061.175",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://ichef.bbci.co.uk/images/ic/1024xn/p0nthw74.jpg.webp",
+      "encodedDataLength": 199039
+    },
+    {
+      "requestId": "45061.290",
+      "type": "Font",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/fonts/reith/2.512/BBCReithSans_W_Md.woff2",
+      "encodedDataLength": 66055
+    },
+    {
+      "requestId": "45061.176",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://ichef.bbci.co.uk/images/ic/1376x774/p0nts3c3.jpg.webp",
+      "encodedDataLength": 254762
+    },
+    {
+      "requestId": "45061.291",
+      "type": "Font",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/fonts/reith/2.512/BBCReithSans_W_Bd.woff2",
+      "encodedDataLength": 60498
+    },
+    {
+      "requestId": "45061.289",
+      "type": "Font",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/fonts/reith/2.512/BBCReithSans_W_Rg.woff2",
+      "encodedDataLength": 67234
+    },
+    {
+      "requestId": "45061.305",
+      "type": "Font",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/fonts/reith/2.512/BBCReithSerif_W_Md.woff2",
+      "encodedDataLength": 79855
+    },
+    {
+      "requestId": "45061.304",
+      "type": "Font",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/fonts/reith/2.512/BBCReithSerif_W_Rg.woff2",
+      "encodedDataLength": 80606
+    },
+    {
+      "requestId": "45061.292",
+      "type": "Font",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/fonts/reith/2.512/BBCReithSans_W_ExBd.woff2",
+      "encodedDataLength": 48593
+    },
+    {
+      "requestId": "45061.8",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://emp.bbci.co.uk/emp/bump-4/bump-4.js",
+      "encodedDataLength": 41311
+    },
+    {
+      "requestId": "45061.33",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0ev-75dou0_3k.js",
+      "encodedDataLength": 51184
+    },
+    {
+      "requestId": "45061.35",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/04x.mw_ko9ky0.js",
+      "encodedDataLength": 13411
+    },
+    {
+      "requestId": "45061.38",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0q-pha0s4fz5c.js",
+      "encodedDataLength": 14521
+    },
+    {
+      "requestId": "45061.5",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://cdn.optimizely.com/public/4621041136/s/bbcx_prod.js",
+      "encodedDataLength": 96179
+    },
+    {
+      "requestId": "45061.39",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/10jcx6o_ki2.7.js",
+      "encodedDataLength": 12404
+    },
+    {
+      "requestId": "45061.37",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/159y0m4.ygbwb.js",
+      "encodedDataLength": 50298
+    },
+    {
+      "requestId": "45061.36",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0a1h~p00_w_j_.js",
+      "encodedDataLength": 50934
+    },
+    {
+      "requestId": "45061.43",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/R9XxsQUvgfBlHgWNMYrde/_buildManifest.js",
+      "encodedDataLength": 1255
+    },
+    {
+      "requestId": "45061.6",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://cdn.tinypass.com/api/tinypass.min.js",
+      "encodedDataLength": 137563
+    },
+    {
+      "requestId": "45061.44",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/R9XxsQUvgfBlHgWNMYrde/_ssgManifest.js",
+      "encodedDataLength": 805
+    },
+    {
+      "requestId": "45061.42",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/turbopack-0.aryf9ibu7e0.js",
+      "encodedDataLength": 5170
+    },
+    {
+      "requestId": "45061.45",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/R9XxsQUvgfBlHgWNMYrde/_clientMiddlewareManifest.js",
+      "encodedDataLength": 968
+    },
+    {
+      "requestId": "45061.41",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0k5e3yiqjcxpr.js",
+      "encodedDataLength": 15777
+    },
+    {
+      "requestId": "45061.40",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0v4zsapym74s_.js",
+      "encodedDataLength": 57104
+    },
+    {
+      "requestId": "45061.183",
+      "type": "Manifest",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/site.webmanifest",
+      "encodedDataLength": 1085
+    },
+    {
+      "requestId": "45061.321",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/09_lln6l9.dj0.js",
+      "encodedDataLength": 5132
+    },
+    {
+      "requestId": "45061.322",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/03sib4udm.e6e.js",
+      "encodedDataLength": 860
+    },
+    {
+      "requestId": "45061.323",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0mcxbeg8v276s.js",
+      "encodedDataLength": 1315
+    },
+    {
+      "requestId": "45061.324",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/_next/static/chunks/0p9.n5-g_cldr.js",
+      "encodedDataLength": 873
+    },
+    {
+      "requestId": "45061.325",
+      "type": "Fetch",
+      "origin_class": "third_party",
+      "url": "https://www.bbc.co.uk/userinfo",
+      "encodedDataLength": 1076
+    },
+    {
+      "requestId": "45061.326",
+      "type": "XHR",
+      "origin_class": "third_party",
+      "url": "https://cdn.optimizely.com/datafiles/Y67aV8AjKqtntTQvKqk1A.json",
+      "encodedDataLength": 1841
+    },
+    {
+      "requestId": "45061.327",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://static.chartbeat.com/js/chartbeat.js",
+      "encodedDataLength": 16405
+    },
+    {
+      "requestId": "45061.328",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://cdn.privacy-mgmt.com/unified/wrapperMessagingWithoutDetection.js",
+      "encodedDataLength": 43495
+    },
+    {
+      "requestId": "45061.329",
+      "type": "XHR",
+      "origin_class": "third_party",
+      "url": "https://logx.optimizely.com/v1/events",
+      "encodedDataLength": 364
+    },
+    {
+      "requestId": "45061.330",
+      "type": "Script",
+      "origin_class": "tracker_or_ads",
+      "url": "https://uk-script.dotmetrics.net/door.js?d=www.bbc.com&t=homestudio",
+      "encodedDataLength": 4636
+    },
+    {
+      "requestId": "45061.332",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://cdn.privacy-mgmt.com/unified/4.40.1/gdpr-tcf.27718c8cb9d29947d2c1.bundle.js",
+      "encodedDataLength": 24857
+    },
+    {
+      "requestId": "45061.334",
+      "type": "XHR",
+      "origin_class": "third_party",
+      "url": "https://cdn.privacy-mgmt.com/mms/v2/get_site_data?hasCsp=true&href=https%3A%2F%2Fwww.bbc.com%2F&account_id=1786",
+      "encodedDataLength": 610
+    },
+    {
+      "requestId": "45061.333",
+      "type": "Script",
+      "origin_class": "third_party",
+      "url": "https://cdn.privacy-mgmt.com/unified/4.40.1/usnat.f12613136193900e32e2.bundle.js",
+      "encodedDataLength": 43354
+    },
+    {
+      "requestId": "45061.335",
+      "type": "Script",
+      "origin_class": "tracker_or_ads",
+      "url": "https://mybbc-analytics.files.bbci.co.uk/echo-client-js/echo-2.6.0-avi.min.js",
+      "encodedDataLength": 120145
+    },
+    {
+      "requestId": "45061.331",
+      "type": "Image",
+      "origin_class": "third_party",
+      "url": "https://ping.chartbeat.net/ping?h=bbc.com&p=%2F&u=DDkxBnD00ZG4C4FNNO&d=bbc.com&g=50924&g0=No%20Section&g1=NewsMediaOrganization&g4=indexPage&n=1&f=00001&c=0&x=0&m=0&y=12264&o=1200&w=611&j=45&R=1&W=0&I=0&E=0&e=0&r=&PA=https%3A%2F%2Fwww.bbc.com%2F&b=6166&_s=%7B%7D&t=CAMfUHIhzHhD4cjomC3Kv3SCftHaD&V=151&i=BBC%20Home%20-%20Breaking%20News%2C%20World%20News%2C%20US%20News%2C%20Sports%2C%20Business%2C%20Innovation%2C%20Climate%2C%20Culture%2C%20Travel%2C%20Video%20%26%20Audio&tz=-120&_=a&sn=1&sv=CEuu1jB7805zAq8JCBVMuNBt5jHg&sr=external&sd=1&im=062b2f3f&_",
+      "encodedDataLength": 201
+    },
+    {
+      "requestId": "45061.336",
+      "type": "XHR",
+      "origin_class": "third_party",
+      "url": "https://cdn.privacy-mgmt.com/wrapper/v2/meta-data?hasCsp=true&accountId=1786&env=prod&metadata=%7B%22gdpr%22%3A%7B%7D%2C%22usnat%22%3A%7B%7D%7D&propertyId=26225&scriptVersion=4.40.1&scriptType=unified",
+      "encodedDataLength": 1091
+    },
+    {
+      "requestId": "45061.337",
+      "type": "XHR",
+      "origin_class": "tracker_or_ads",
+      "url": "https://mybbc-analytics.files.bbci.co.uk/analytics-remote-config/producers.json",
+      "encodedDataLength": 1858
+    },
+    {
+      "requestId": "45061.338",
+      "type": "XHR",
+      "origin_class": "tracker_or_ads",
+      "url": "https://mybbc-analytics.files.bbci.co.uk/analytics-remote-config/masterbrands.json",
+      "encodedDataLength": 1959
+    },
+    {
+      "requestId": "45061.340",
+      "type": "XHR",
+      "origin_class": "third_party",
+      "url": "https://cdn.privacy-mgmt.com/wrapper/v2/messages?hasCsp=true&env=prod&body=%7B%22accountId%22%3A1786%2C%22campaignEnv%22%3A%22prod%22%2C%22campaigns%22%3A%7B%22gdpr%22%3A%7B%22consentStatus%22%3A%7B%7D%2C%22targetingParams%22%3A%7B%7D%7D%2C%22usnat%22%3A%7B%22consentStatus%22%3A%7B%7D%2C%22hasLocalData%22%3Afalse%2C%22targetingParams%22%3A%7B%7D%7D%7D%2C%22clientMMSOrigin%22%3A%22https%3A%2F%2Fcdn.privacy-mgmt.com%22%2C%22hasCSP%22%3Atrue%2C%22includeData%22%3A%7B%22localState%22%3A%7B%22type%22%3A%22string%22%7D%2C%22actions%22%3A%7B%22type%22%3A%22RecordString%22%7D%2C%22cookies%22%3A%7B%22type%22%3A%22RecordString%22%7D%7D%2C%22propertyHref%22%3A%22https%3A%2F%2Fwww.bbc.com%2F%22%7D&localState=null&metadata=%7B%22gdpr%22%3A%7B%22applies%22%3Atrue%7D%2C%22usnat%22%3A%7B%22applies%22%3Afalse%7D%7D&nonKeyedLocalState=null&ch=515230719515230719ef18515130582e42b&scriptVersion=4.40.1&scriptType=unified",
+      "encodedDataLength": 7469
+    },
+    {
+      "requestId": "45061.342",
+      "type": "Image",
+      "origin_class": "tracker_or_ads",
+      "url": "https://uk-script.dotmetrics.net/hit.gif?id=13934&url=https%3A%2F%2Fwww.bbc.com%2F&dom=www.bbc.com&r=1782461372450&pvs=1&ecid=c9d2d632-eaab-4e85-9cc4-4188ab05d5d5&c=false&tzOffset=-120&doorUrl=http%3a%2f%2fuk-script.dotmetrics.net%2fdoor.js%3fd%3dwww.bbc.com%26t%3dhomestudio&dfph=&ver=364",
+      "encodedDataLength": 405
+    },
+    {
+      "requestId": "45061.343",
+      "type": "Image",
+      "origin_class": "tracker_or_ads",
+      "url": "https://rm-script.dotmetrics.net/hit.gif?id=13934&url=https%3A%2F%2Fwww.bbc.com%2F&dom=www.bbc.com&r=1782461372450&pvs=1&pvid=c9d2d632-eaab-4e85-9cc4-4188ab05d5d5&c=false&tzOffset=-120",
+      "encodedDataLength": 1192
+    },
+    {
+      "requestId": "45061.341",
+      "type": "XHR",
+      "origin_class": "first_party",
+      "url": "https://a1.api.bbc.com/event?s=638824&idclient=bb99e924-21c2-4a3b-b073-901000ad5a1f",
+      "encodedDataLength": 324
+    },
+    {
+      "requestId": "45061.344",
+      "type": "XHR",
+      "origin_class": "first_party",
+      "url": "https://a1.api.bbc.com/event?s=638824&idclient=bb99e924-21c2-4a3b-b073-901000ad5a1f",
+      "encodedDataLength": 324
+    },
+    {
+      "requestId": "45061.345",
+      "type": "Other",
+      "origin_class": "third_party",
+      "url": "https://static.files.bbci.co.uk/bbcdotcom/web/20260622-112318-8580374aad-web-3.11.0-5/favicon.ico",
+      "encodedDataLength": 7043
+    },
+    {
+      "requestId": "45061.339",
+      "type": "Fetch",
+      "origin_class": "tracker_or_ads",
+      "url": "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js",
+      "encodedDataLength": 55547
+    },
+    {
+      "requestId": "45061.346",
+      "type": "XHR",
+      "origin_class": "first_party",
+      "url": "https://a1.api.bbc.com/event?s=638824&idclient=bb99e924-21c2-4a3b-b073-901000ad5a1f",
+      "encodedDataLength": 324
+    },
+    {
+      "requestId": "45061.347",
+      "type": "Script",
+      "origin_class": "tracker_or_ads",
+      "url": "https://uk-script.dotmetrics.net/Scripts/ncs-script.js?v=364",
+      "encodedDataLength": 2976
+    }
+  ],
+  "site_label": "bbc",
+  "category": "news"
+}
