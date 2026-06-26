@@ -1,12 +1,10 @@
-# Archived / local experiment runs
+# Ejecuciones locales
 
-This folder is for local-only experiment outputs that should not be committed to git.
+Esta carpeta es para guardar ejecuciones locales que no quiero subir al repositorio.
 
-New batch runs are written to `results/<YYYYMMDD_HHMMSS>/` by default. The reference
-sample run tracked in version control is:
+Por defecto, las ejecuciones nuevas se guardan en `results/<YYYYMMDD_HHMMSS>/`.
+La ejecución piloto que sí dejo versionada como referencia es:
 
-- `results/run_20260626/` — 5-site validation (DNS, DoH, DoQ + web profiling)
+- `results/run_20260626/`: validación con cinco webs, DNS, DoH, DoQ y perfilado web.
 
-PCAP files are ignored globally (see root `.gitignore`) because they are large.
-CSV summaries, JSON profiles and analysis figures from the sample run are kept
-in the repository for reproducibility and thesis figures.
+Los PCAP se ignoran globalmente porque pueden ocupar bastante y son capturas brutas de red. En cambio, dejo los CSV, perfiles JSON y figuras de la ejecución piloto para poder revisar el pipeline sin repetir todo el experimento.

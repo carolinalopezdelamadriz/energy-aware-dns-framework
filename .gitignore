@@ -209,20 +209,20 @@ __marimo__/
 # macOS
 .DS_Store
 
-# Local notes and scratch
+# Notas locales y borradores
 notes.txt
 docs/apuntes_personales/
 
-# Local supervisor email material (kept outside GitHub)
+# Material para correos/revisiones, lo dejo local
 docs/email_tutora/
 
-# Experiment artifacts (large captures — keep locally, not in git)
+# Capturas brutas de experimentos: se quedan en local
 *.pcap
 
-# Matplotlib cache inside result runs
+# Cache de matplotlib dentro de resultados
 **/.matplotlib/
 
-# Generated experiment runs (keep reference sample run only)
+# Ejecuciones generadas. Solo dejo versionada la ejecución piloto de referencia
 results/**/*
 !results/.gitkeep
 !results/run_20260626/
@@ -232,9 +232,9 @@ results/**/*
 !results/archive/
 !results/archive/README.md
 
-# Re-ignore large captures even inside the tracked sample run
+# Re-ignorar capturas grandes incluso dentro de la ejecución piloto
 results/**/*.pcap
 
-# Re-ignore local/cache files after result-run allow rules
+# Re-ignorar ficheros locales/cache después de las excepciones anteriores
 results/**/.DS_Store
 results/**/.matplotlib/

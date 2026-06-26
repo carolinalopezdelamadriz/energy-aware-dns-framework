@@ -482,19 +482,19 @@ def _markdown_report(
     generated_plots: list[str],
 ) -> str:
     lines = [
-        "# Experiment analysis summary",
+        "# Resumen del análisis",
         "",
-        f"Run directory: `{run_dir}`",
+        f"Carpeta de ejecución: `{run_dir}`",
         "",
-        "Compact preview of the final analysis phase: protocol overhead, web payload, "
-        "network overhead and carbon footprint.",
+        "Resumen rápido de la ejecución: comparación de protocolos DNS, tráfico web "
+        "capturado y estimación de huella de carbono.",
         "",
-        "## DNS protocol comparison",
+        "## Comparación de protocolos DNS",
         "",
     ]
 
     if dns_summary:
-        lines.append("| Protocol | Samples | Avg bytes | Avg CO₂ (kg) | Overhead vs DNS |")
+        lines.append("| Protocolo | Muestras | Bytes medios | CO₂ medio (kg) | Sobrecoste vs DNS |")
         lines.append("| --- | ---: | ---: | ---: | ---: |")
         dns_base = next((row["avg_bytes"] for row in dns_summary if row["protocol"] == "dns"), None)
         for row in dns_summary:
@@ -505,11 +505,11 @@ def _markdown_report(
                 f"{row['avg_co2_kg']:.6e} | {ratio:.1f}× |"
             )
     else:
-        lines.append("No DNS results found.")
+        lines.append("No hay resultados DNS en esta ejecución.")
 
-    lines.extend(["", "## Web traffic by site", ""])
+    lines.extend(["", "## Tráfico web por sitio", ""])
     if web_summary:
-        lines.append("| Site | Category | PCAP bytes | CDP bytes | PCAP/CDP ratio |")
+        lines.append("| Sitio | Categoría | Bytes PCAP | Bytes CDP | Ratio PCAP/CDP |")
         lines.append("| --- | --- | ---: | ---: | ---: |")
         for row in web_summary:
             cdp = row.get("avg_cdp_bytes", 0)
@@ -521,11 +521,11 @@ def _markdown_report(
                 f"{_format_bytes(pcap)} | {_format_bytes(cdp)} | {ratio:.2f}× |"
             )
     else:
-        lines.append("No web results found.")
+        lines.append("No hay resultados web en esta ejecución.")
 
-    lines.extend(["", "## Resource origin profile", ""])
+    lines.extend(["", "## Perfil por origen de recursos", ""])
     if origin_summary:
-        lines.append("| Origin class | Samples | Avg bytes | Share of CDP bytes |")
+        lines.append("| Origen | Muestras | Bytes medios | Porcentaje sobre CDP |")
         lines.append("| --- | ---: | ---: | ---: |")
         for row in origin_summary:
             lines.append(
@@ -533,10 +533,10 @@ def _markdown_report(
                 f"{_format_bytes(row['avg_bytes'])} | {row['avg_pct_of_cdp_bytes']:.1f}% |"
             )
     else:
-        lines.append("No CDP resource profiles found.")
+        lines.append("No hay perfiles CDP de recursos en esta ejecución.")
 
     if generated_plots:
-        lines.extend(["", "## Generated figures", ""])
+        lines.extend(["", "## Figuras generadas", ""])
         for plot in generated_plots:
             lines.append(f"- `{plot}`")
 

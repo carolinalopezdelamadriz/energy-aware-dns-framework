@@ -1,109 +1,114 @@
 # Energy-Aware DNS Framework
 
-Framework for measuring the network overhead and Digital Carbon Footprint (CFP) of web navigation and encrypted DNS protocols.
+Este repositorio contiene el framework que estoy desarrollando para mi TFG. La idea principal es medir cuánto tráfico generan distintos protocolos de resolución DNS y cómo se puede traducir ese tráfico a una estimación de energía y CO2.
 
-TFG title: **Framework-Based Energy-Aware Analysis of encrypted DNS: The Carbon Cost of Privacy**
+Título del TFG: **Framework-Based Energy-Aware Analysis of encrypted DNS: The Carbon Cost of Privacy**
 
-## Objectives
+## Qué mide
 
-- Measure protocol overhead for classic DNS, DNS over HTTPS (DoH) and DNS over QUIC (DoQ).
-- Capture full web browsing traffic using `tcpdump`.
-- Profile web resources using Selenium and Chrome DevTools Protocol (CDP).
-- Convert traffic volume into energy consumption and CO2e emissions.
-- Persist reproducible experiment outputs for later analysis and thesis figures.
+El framework trabaja en dos niveles:
 
-## Requirements
+- resolución DNS aislada, comparando DNS clásico, DNS over HTTPS (DoH) y DNS over QUIC (DoQ);
+- navegación web real, capturando tanto el tráfico de red como los recursos que ve el navegador.
+
+La comparación importante es esta:
+
+- CDP muestra los recursos que Chrome carga: HTML, scripts, imágenes, fuentes, etc.;
+- PCAP muestra lo que realmente pasa por la red: DNS, TLS, QUIC, cabeceras, ACKs, handshakes y tráfico auxiliar.
+
+Con esos bytes, el framework calcula una estimación sencilla de energía y CO2. No pretende dar un valor absoluto universal, sino usar el mismo modelo para comparar escenarios de forma consistente.
+
+## Requisitos
 
 - Python 3.9+
-- Chrome and ChromeDriver compatible with Selenium
+- Google Chrome y ChromeDriver compatible con Selenium
 - `tcpdump`
-- `kdig` with QUIC support for DoQ experiments
-- Python dependencies from `requirements.txt`
+- `kdig` con soporte QUIC para las pruebas de DoQ
+- dependencias de Python incluidas en `requirements.txt`
 
 ```bash
 pip install -r requirements.txt
 ```
 
-DoQ requires `aioquic`. Verify the Python environment before running experiments:
+DoQ necesita `aioquic`. Antes de lanzar experimentos conviene comprobar el entorno:
 
 ```bash
 python3 src/main.py --mode check --interface en0
 ```
 
-To test which DoQ resolvers work from the current network:
+Para comprobar si DoQ funciona desde la red actual:
 
 ```bash
 python3 src/main.py --mode check --interface en0 --check-doq --doq-resolver quad9
 ```
 
-`tcpdump` may require administrator permissions depending on the operating system.
+En macOS, `tcpdump` suele necesitar permisos de administrador.
 
-## Usage
+## Uso básico
 
-Run the full experiment:
+Ejecutar el flujo completo:
 
 ```bash
 python src/main.py
 ```
 
-Run only DNS protocol comparison:
+Ejecutar solo la comparación DNS:
 
 ```bash
 python src/main.py --mode dns --domain bbc.com --repetitions 5
 ```
 
-On macOS, select the active interface explicitly. For Wi-Fi this is usually `en0`:
+En macOS normalmente hay que indicar la interfaz de red. Para Wi-Fi suele ser `en0`:
 
 ```bash
 python src/main.py --mode dns --protocols dns doh --domain bbc.com --repetitions 5 --interface en0
 ```
 
-If `tcpdump` reports permission errors, run the experiment with elevated permissions:
+Si `tcpdump` da error de permisos:
 
 ```bash
 sudo -E python src/main.py --mode dns --protocols dns doh --domain bbc.com --repetitions 5 --interface en0
 ```
 
-Run only web traffic profiling:
+Ejecutar solo la parte de navegación web:
 
 ```bash
 python src/main.py --mode web --url https://www.bbc.com
 ```
 
-Select DNS protocols:
+Seleccionar protocolos concretos:
 
 ```bash
 python src/main.py --mode dns --protocols dns doh
 ```
 
-## Repository layout
+## Estructura
 
 ```text
 energy-aware-dns-framework/
-├── src/                         # Framework source code
+├── src/                         # código del framework
 ├── data/
-│   └── sites_sample.csv         # 5-site sample list
+│   └── sites_sample.csv         # muestra pequeña de prueba
 ├── results/
-│   ├── run_20260626/            # Reference sample run (tracked in git)
-│   └── archive/                 # Local-only runs (not committed)
+│   ├── run_20260626/            # ejecución piloto que dejo como referencia
+│   └── archive/                 # ejecuciones locales que no quiero subir
 ├── README.md
 └── requirements.txt
 ```
 
-New batch experiments create timestamped folders under `results/`. PCAP files are
-ignored by git (large); CSV, JSON profiles and analysis figures from the sample run
-are kept for reproducibility.
+Las ejecuciones nuevas crean carpetas con timestamp dentro de `results/`. Los PCAP se ignoran porque pueden ser grandes y además son capturas brutas de red. En cambio, la ejecución piloto conserva CSV, JSON y figuras para que se pueda revisar el pipeline sin tener que relanzar todo.
 
-## Batch experiment (sample run)
+## Ejecución por lotes
 
-A validated 5-site sample run is available at `results/run_20260626/`. To reproduce
-or extend it, use batch mode with the sample site list:
+La carpeta `results/run_20260626/` contiene una primera ejecución pequeña con cinco webs. La uso como validación inicial del framework, no como resultado final del TFG.
 
-Check the local environment first:
+Primero comprobaría el entorno:
 
 ```bash
 python3 src/main.py --mode check --interface en0
 ```
+
+Después se puede lanzar el batch:
 
 ```bash
 sudo -E python3 src/main.py \
@@ -116,7 +121,7 @@ sudo -E python3 src/main.py \
   --doq-resolver quad9
 ```
 
-This creates a timestamped folder under `results/`, for example:
+Esto genera una carpeta nueva dentro de `results/`, por ejemplo:
 
 ```text
 results/20260626_103000/
@@ -128,13 +133,13 @@ results/20260626_103000/
   web_<timestamp>.pcap
 ```
 
-Then generate the analysis layer:
+Después se genera el análisis:
 
 ```bash
 python3 src/main.py --mode analyze --run-dir results/20260626_103000
 ```
 
-The analysis step creates:
+El análisis crea:
 
 ```text
 results/<run_id>/analysis/
@@ -149,27 +154,21 @@ results/<run_id>/analysis/
   fig_dashboard.png
 ```
 
-Regenerate figures for the reference sample run:
+Para regenerar las figuras de la ejecución piloto:
 
 ```bash
 python3 src/main.py --mode analyze --run-dir results/run_20260626
 ```
 
-This compares protocol bytes and CFP, CDP payload against PCAP traffic, and gives
-an initial breakdown of web resources by origin class.
+Ese análisis compara bytes por protocolo, estima CFP, cruza el payload visto por CDP con el tráfico capturado en PCAP y saca un primer desglose de recursos por origen.
 
-Use `--skip-web` to validate only DNS protocol captures, or `--skip-dns` to validate
-only Selenium/CDP web captures.
+También se puede usar `--skip-web` para probar solo DNS, o `--skip-dns` para probar solo Selenium/CDP.
 
-DoQ support depends on local network access to UDP/853 and resolver support. The
-framework uses one fixed DoQ resolver per run, `quad9` by default, because trying
-several resolvers inside the same capture pollutes the PCAP with failed handshakes
-and retransmissions. Use `--check-doq` first and then pass the resolver that works
-with `--doq-resolver`.
+Una cosa importante con DoQ: depende de que la red permita UDP/853 y de que el resolver responda bien. Por eso el framework usa un único resolver DoQ por ejecución, `quad9` por defecto. Si se prueban varios resolvers dentro de la misma captura, el PCAP se ensucia con handshakes fallidos y retransmisiones, y luego los bytes ya no son comparables.
 
-## CFP model
+## Modelo de carbono
 
-The current CFP model is intentionally simple and configurable:
+El modelo actual es simple a propósito y está pensado para poder cambiar las constantes cuando cierre la parte bibliográfica:
 
 ```text
 E[J] = bytes * energy_per_byte_j
@@ -177,5 +176,6 @@ E[kWh] = E[J] / 3.6e6
 CO2[kgCO2e] = E[kWh] * co2_per_kwh
 ```
 
-## Author
+## Autoría
+
 Carolina López De La Madriz | Double Degree in Data Science and Engineering and Telecommunication Technologies Engineering

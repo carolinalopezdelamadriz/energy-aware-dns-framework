@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Remove leftover debug runs (some may be owned by root if experiments were run with sudo).
+# Limpia ejecuciones de prueba que se hayan quedado a medias.
+# Algunas pueden pertenecer a root si se lanzaron experimentos con sudo.
 # Run manually: bash scripts/cleanup_local_results.sh
 
 set -euo pipefail

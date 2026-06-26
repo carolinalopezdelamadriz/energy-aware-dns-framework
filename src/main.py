@@ -3,84 +3,84 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Energy-aware DNS and web traffic experiment runner"
+        description="Runner para los experimentos DNS y web del framework"
     )
     parser.add_argument(
         "--mode",
         choices=("all", "dns", "web", "batch", "analyze", "check"),
         default="all",
-        help="Experiment family to run",
+        help="Tipo de experimento a ejecutar",
     )
-    parser.add_argument("--domain", default="bbc.com", help="Domain for DNS tests")
+    parser.add_argument("--domain", default="bbc.com", help="Dominio para las pruebas DNS")
     parser.add_argument(
         "--url",
         default="https://www.bbc.com",
-        help="Website URL for the web traffic test",
+        help="URL para la prueba de navegación web",
     )
     parser.add_argument(
         "--protocols",
         nargs="+",
         choices=("dns", "doh", "doq"),
         default=("dns", "doh", "doq"),
-        help="DNS protocols to compare",
+        help="Protocolos DNS que se quieren comparar",
     )
     parser.add_argument(
         "--doq-resolver",
         choices=("quad9", "cloudflare", "google"),
         default="quad9",
-        help="DoQ resolver used for measurements. Use one fixed resolver to avoid polluted PCAPs.",
+        help="Resolver DoQ usado en la medición. Conviene fijar uno para no ensuciar los PCAP.",
     )
     parser.add_argument(
         "--repetitions",
         type=int,
         default=5,
-        help="Number of DNS queries per protocol",
+        help="Número de consultas DNS por protocolo",
     )
     parser.add_argument(
         "--output-dir",
         default="results",
-        help="Directory for pcaps, CSV summaries and JSON profiles",
+        help="Directorio donde se guardan PCAP, CSV y perfiles JSON",
     )
     parser.add_argument(
         "--interface",
         default=None,
-        help="Network interface used by tcpdump, for example en0 on macOS",
+        help="Interfaz de red usada por tcpdump, por ejemplo en0 en macOS",
     )
     parser.add_argument(
         "--no-cdp",
         action="store_true",
-        help="Disable Selenium/CDP resource profiling for the web experiment",
+        help="Desactiva el perfilado de recursos con Selenium/CDP",
     )
     parser.add_argument(
         "--sites-file",
         default="data/sites_sample.csv",
-        help="CSV file with label, domain and url columns for batch mode",
+        help="CSV con columnas label, domain y url para el modo batch",
     )
     parser.add_argument(
         "--run-dir",
         default=None,
-        help="Existing result run directory to analyze, for example results/20260626_103000",
+        help="Carpeta de resultados que se quiere analizar, por ejemplo results/20260626_103000",
     )
     parser.add_argument(
         "--web-repetitions",
         type=int,
         default=1,
-        help="Number of web visits per site in batch mode",
+        help="Número de visitas web por sitio en modo batch",
     )
     parser.add_argument(
         "--skip-dns",
         action="store_true",
-        help="Skip DNS experiments in batch mode",
+        help="Saltar los experimentos DNS en modo batch",
     )
     parser.add_argument(
         "--skip-web",
         action="store_true",
-        help="Skip web experiments in batch mode",
+        help="Saltar los experimentos web en modo batch",
     )
     parser.add_argument(
         "--check-doq",
         action="store_true",
-        help="In check mode, test DoQ connectivity against the known resolvers",
+        help="En modo check, comprueba conectividad DoQ con el resolver elegido",
     )
     return parser.parse_args()
 

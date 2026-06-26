@@ -1,5 +1,5 @@
 """
-Helpers to persist experiment results in simple, thesis-friendly formats.
+Funciones pequeñas para guardar resultados en formatos fáciles de revisar.
 """
 
 from __future__ import annotations
