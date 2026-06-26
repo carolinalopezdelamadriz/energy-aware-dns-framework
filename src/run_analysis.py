@@ -182,6 +182,26 @@ def _annotate_bars(ax, bars, values, formatter=_format_bytes, offset_ratio: floa
         )
 
 
+def _annotate_log_bars(ax, bars, values, formatter=_format_bytes):
+    positive = [value for value in values if value > 0]
+    if positive:
+        ax.set_ylim(min(positive) * 0.35, max(positive) * 3.8)
+
+    for bar, value in zip(bars, values):
+        if value <= 0:
+            continue
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            value * 1.35,
+            formatter(value),
+            ha="center",
+            va="bottom",
+            fontsize=9,
+            color="#37474F",
+            fontweight="500",
+        )
+
+
 def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]]) -> bool:
     if not dns_summary:
         return False
@@ -195,36 +215,37 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
     values = [row["avg_bytes"] for row in dns_summary]
     colors = [PROTOCOL_COLORS.get(row["protocol"], "#455A64") for row in dns_summary]
 
-    fig, ax = plt.subplots(figsize=(8.5, 5.2))
+    fig, ax = plt.subplots(figsize=(8.5, 5.8))
     bars = ax.bar(labels, values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
 
-    ax.set_title("DNS resolution traffic by protocol", pad=14)
-    ax.set_ylabel("Average bytes per resolution")
+    ax.set_title("Average DNS traffic by protocol", pad=18)
+    ax.set_ylabel("Bytes per resolution")
     ax.set_yscale("log")
     ax.grid(axis="y", linestyle="--", alpha=0.9)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    _annotate_bars(ax, bars, values)
+    _annotate_log_bars(ax, bars, values)
 
     if len(values) >= 2 and values[0] > 0:
         ratio = values[1] / values[0]
         ax.text(
-            0.98,
-            0.96,
+            0.03,
+            0.97,
             f"DoH ≈ {ratio:.0f}× classic DNS",
             transform=ax.transAxes,
-            ha="right",
+            ha="left",
             va="top",
             fontsize=9,
             color="#546E7A",
             bbox={"boxstyle": "round,pad=0.35", "facecolor": "#ECEFF1", "edgecolor": "none"},
         )
 
+    fig.subplots_adjust(top=0.90, bottom=0.16)
     fig.text(
-        0.01,
-        0.01,
-        "Sample run · log scale · bytes include transport and encryption overhead",
+        0.12,
+        0.05,
+        "Log scale · includes transport and encryption overhead",
         fontsize=8,
         color="#78909C",
     )
@@ -333,8 +354,8 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
     fig, (ax_bar, ax_pie) = plt.subplots(
         2,
         1,
-        figsize=(9.5, 7.2),
-        gridspec_kw={"height_ratios": [1.15, 1], "hspace": 0.38},
+        figsize=(9.5, 7.5),
+        gridspec_kw={"height_ratios": [1.1, 1], "hspace": 0.55},
     )
 
     y_pos = range(len(labels))
@@ -349,8 +370,8 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
     ax_bar.set_yticks(list(y_pos))
     ax_bar.set_yticklabels(labels, fontsize=11)
     ax_bar.invert_yaxis()
-    ax_bar.set_xlabel("Average CDP bytes")
-    ax_bar.set_title("Traffic by resource origin", pad=12)
+    ax_bar.set_xlabel("Total CDP bytes")
+    ax_bar.set_title("CDP traffic by resource origin", pad=14, fontsize=13, fontweight="600")
     ax_bar.set_xlim(0, xmax)
     ax_bar.xaxis.set_major_locator(MaxNLocator(nbins=5))
     ax_bar.xaxis.set_major_formatter(
@@ -389,10 +410,9 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
         frameon=False,
         fontsize=10,
     )
-    ax_pie.set_title("Share of CDP bytes", pad=12)
+    ax_pie.set_title("Percentage breakdown", pad=12, fontsize=12)
 
-    fig.suptitle("Web resource origin profile", fontsize=14, fontweight="600", y=0.98)
-    fig.subplots_adjust(left=0.14, right=0.82, top=0.92, bottom=0.08)
+    fig.subplots_adjust(left=0.14, right=0.78, top=0.96, bottom=0.08, hspace=0.55)
     _save_figure(plt, path)
     return True
 
@@ -417,7 +437,7 @@ def _plot_run_dashboard(
 
     fig, axes = plt.subplots(2, 2, figsize=(12.5, 9))
     fig.suptitle(
-        f"Resumen de ejecución — {run_id}",
+        f"Experiment summary — {run_id}",
         fontsize=15,
         fontweight="600",
         y=0.98,
@@ -430,12 +450,12 @@ def _plot_run_dashboard(
     dns_colors = [PROTOCOL_COLORS.get(row["protocol"], "#455A64") for row in dns_summary]
     bars = ax.bar(dns_labels, dns_values, color=dns_colors, edgecolor="white", width=0.58)
     ax.set_yscale("log")
-    ax.set_title("Bytes medios por protocolo DNS")
-    ax.set_ylabel("Bytes (escala log)")
+    ax.set_title("Average DNS traffic by protocol")
+    ax.set_ylabel("Bytes (log scale)")
     ax.grid(axis="y", linestyle="--", alpha=0.8)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    _annotate_bars(ax, bars, dns_values)
+    _annotate_log_bars(ax, bars, dns_values)
     if dns_base and len(dns_values) >= 2:
         ax.text(
             0.98,
@@ -460,7 +480,7 @@ def _plot_run_dashboard(
     ax.bar([i + width / 2 for i in x], cdp_values, width, label="CDP", color="#00838F", edgecolor="white")
     ax.set_xticks(list(x))
     ax.set_xticklabels(sites, rotation=15, ha="right")
-    ax.set_title("Tráfico web por sitio")
+    ax.set_title("Web traffic by site")
     ax.legend(frameon=False, fontsize=8, loc="upper right")
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda value, _pos: _format_bytes(value)))
     ax.grid(axis="y", linestyle="--", alpha=0.8)
@@ -479,9 +499,9 @@ def _plot_run_dashboard(
         ratio_labels.append(f"{ratio:.2f}×")
 
     bars = ax.bar(range(len(sites)), ratios, color=CATEGORY_PALETTE[: len(sites)], edgecolor="white", width=0.62)
-    ax.axhline(1.0, color="#C62828", linestyle="--", linewidth=1, label="1× (sin sobrecoste)")
-    ax.set_title("Ratio PCAP / CDP")
-    ax.set_ylabel("Multiplicador")
+    ax.axhline(1.0, color="#C62828", linestyle="--", linewidth=1, label="1× (no overhead)")
+    ax.set_title("PCAP / CDP ratio")
+    ax.set_ylabel("Multiplier")
     ax.set_xticks(range(len(sites)))
     ax.set_xticklabels(sites, rotation=15, ha="right")
     ax.legend(frameon=False, fontsize=8)
@@ -529,12 +549,12 @@ def _plot_run_dashboard(
         frameon=False,
         fontsize=8,
     )
-    ax.set_title("Origen del tráfico CDP (total)")
+    ax.set_title("CDP traffic by origin (total)")
 
     fig.text(
         0.01,
         0.01,
-        "Datos de la última ejecución analizada · ver summary.md",
+        "Latest analyzed run · see summary.md",
         fontsize=8,
         color="#78909C",
     )
@@ -579,19 +599,19 @@ def _markdown_report(
     generated_plots: list[str],
 ) -> str:
     lines = [
-        "# Resumen del análisis",
+        "# Analysis summary",
         "",
-        f"Carpeta de ejecución: `{run_dir}`",
+        f"Run directory: `{run_dir}`",
         "",
-        "Resumen rápido de la ejecución: comparación de protocolos DNS, tráfico web "
-        "capturado y estimación de huella de carbono.",
+        "Compact overview of protocol overhead, captured web traffic and estimated "
+        "carbon footprint.",
         "",
-        "## Comparación de protocolos DNS",
+        "## DNS protocol comparison",
         "",
     ]
 
     if dns_summary:
-        lines.append("| Protocolo | Muestras | Bytes medios | CO₂ medio (kg) | Sobrecoste vs DNS |")
+        lines.append("| Protocol | Samples | Avg bytes | Avg CO₂ (kg) | Overhead vs DNS |")
         lines.append("| --- | ---: | ---: | ---: | ---: |")
         dns_base = next((row["avg_bytes"] for row in dns_summary if row["protocol"] == "dns"), None)
         for row in dns_summary:
@@ -602,11 +622,11 @@ def _markdown_report(
                 f"{row['avg_co2_kg']:.6e} | {ratio:.1f}× |"
             )
     else:
-        lines.append("No hay resultados DNS en esta ejecución.")
+        lines.append("No DNS results found for this run.")
 
-    lines.extend(["", "## Tráfico web por sitio", ""])
+    lines.extend(["", "## Web traffic by site", ""])
     if web_summary:
-        lines.append("| Sitio | Categoría | Bytes PCAP | Bytes CDP | Ratio PCAP/CDP |")
+        lines.append("| Site | Category | PCAP bytes | CDP bytes | PCAP/CDP ratio |")
         lines.append("| --- | --- | ---: | ---: | ---: |")
         for row in web_summary:
             cdp = row.get("avg_cdp_bytes", 0)
@@ -618,22 +638,23 @@ def _markdown_report(
                 f"{_format_bytes(pcap)} | {_format_bytes(cdp)} | {ratio:.2f}× |"
             )
     else:
-        lines.append("No hay resultados web en esta ejecución.")
+        lines.append("No web results found for this run.")
 
-    lines.extend(["", "## Perfil por origen de recursos", ""])
+    lines.extend(["", "## Resource origin profile", ""])
     if origin_summary:
-        lines.append("| Origen | Sitios | Bytes CDP totales | % del CDP total |")
+        lines.append("| Origin class | Sites | Total CDP bytes | Share of CDP |")
         lines.append("| --- | ---: | ---: | ---: |")
         for row in origin_summary:
+            origin_label = ORIGIN_LABELS.get(row["origin_class"], row["origin_class"])
             lines.append(
-                f"| {row['origin_class']} | {row['samples']} | "
+                f"| {origin_label} | {row['samples']} | "
                 f"{_format_bytes(row['bytes'])} | {row['pct_of_cdp_bytes']:.1f}% |"
             )
     else:
-        lines.append("No hay perfiles CDP de recursos en esta ejecución.")
+        lines.append("No CDP resource profiles found for this run.")
 
     if generated_plots:
-        lines.extend(["", "## Figuras generadas", ""])
+        lines.extend(["", "## Generated figures", ""])
         for plot in generated_plots:
             lines.append(f"- `{plot}`")
 
