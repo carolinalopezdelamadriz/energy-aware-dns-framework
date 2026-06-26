@@ -106,6 +106,41 @@ def _summarize(rows: list[dict[str, str]], group_key: str, metrics: list[str]):
     return summary
 
 
+def _sort_web_rows(web_rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    return sorted(web_rows, key=lambda row: (row.get("site_label") or "").lower())
+
+
+def _pooled_origin_summary(origin_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Sum CDP bytes by origin across all sites (consistent pie chart + summary)."""
+    totals: dict[str, float] = defaultdict(float)
+    sites_by_origin: dict[str, set[str]] = defaultdict(set)
+
+    for row in origin_rows:
+        origin = row.get("origin_class") or "unknown_origin"
+        byte_count = float(row.get("bytes") or 0)
+        totals[origin] += byte_count
+        site = row.get("site_label") or ""
+        if site:
+            sites_by_origin[origin].add(site)
+
+    grand_total = sum(totals.values()) or 1.0
+    summary = []
+    for origin in sorted(totals.keys()):
+        byte_total = totals[origin]
+        pct = byte_total / grand_total * 100
+        summary.append(
+            {
+                "origin_class": origin,
+                "bytes": byte_total,
+                "avg_bytes": byte_total,
+                "pct_of_cdp_bytes": pct,
+                "avg_pct_of_cdp_bytes": pct,
+                "samples": len(sites_by_origin[origin]),
+            }
+        )
+    return summary
+
+
 def _format_bytes(value: float, precision: int = 1) -> str:
     units = ["B", "KB", "MB", "GB"]
     size = float(value)
@@ -206,6 +241,8 @@ def _plot_web_traffic_comparison(path: Path, web_rows: list[dict[str, str]]) -> 
     except ImportError:
         return False
 
+    web_rows = _sort_web_rows(web_rows)
+
     sites = [row.get("site_label") or row.get("category", "?") for row in web_rows]
     pcap_values = [_float(row, "pcap_bytes") for row in web_rows]
     cdp_values = [_float(row, "cdp_bytes") for row in web_rows]
@@ -287,7 +324,7 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
     for row in origin_summary:
         origin = row["origin_class"]
         labels.append(ORIGIN_LABELS.get(origin, origin.replace("_", " ")))
-        values.append(row["avg_bytes"])
+        values.append(row["bytes"])
         colors.append(ORIGIN_COLORS.get(origin, "#78909C"))
 
     total = sum(values) or 1
@@ -346,7 +383,7 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
     )
     ax_pie.legend(
         _wedges,
-        [f"{label} ({value / total * 100:.0f}%)" for label, value in zip(labels, values)],
+        [f"{label} ({row['pct_of_cdp_bytes']:.0f}%)" for label, row in zip(labels, origin_summary)],
         loc="center left",
         bbox_to_anchor=(1.02, 0.5),
         frameon=False,
@@ -362,6 +399,7 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
 
 def _plot_run_dashboard(
     path: Path,
+    run_id: str,
     dns_summary: list[dict[str, Any]],
     web_rows: list[dict[str, str]],
     origin_summary: list[dict[str, Any]],
@@ -374,74 +412,133 @@ def _plot_run_dashboard(
     except ImportError:
         return False
 
-    fig, axes = plt.subplots(2, 2, figsize=(12, 8.5))
+    web_rows = _sort_web_rows(web_rows)
+    dns_base = next((row["avg_bytes"] for row in dns_summary if row["protocol"] == "dns"), None)
+
+    fig, axes = plt.subplots(2, 2, figsize=(12.5, 9))
     fig.suptitle(
-        "Experiment overview — Carbon Cost of Privacy",
+        f"Resumen de ejecución — {run_id}",
         fontsize=15,
         fontweight="600",
         y=0.98,
     )
 
-    # DNS mini chart
+    # DNS — matches summary table (avg bytes + overhead vs DNS)
     ax = axes[0, 0]
     dns_labels = [row["protocol"].upper() for row in dns_summary]
     dns_values = [row["avg_bytes"] for row in dns_summary]
     dns_colors = [PROTOCOL_COLORS.get(row["protocol"], "#455A64") for row in dns_summary]
-    ax.bar(dns_labels, dns_values, color=dns_colors, edgecolor="white")
+    bars = ax.bar(dns_labels, dns_values, color=dns_colors, edgecolor="white", width=0.58)
     ax.set_yscale("log")
-    ax.set_title("DNS bytes (log scale)")
-    ax.set_ylabel("Bytes")
+    ax.set_title("Bytes medios por protocolo DNS")
+    ax.set_ylabel("Bytes (escala log)")
     ax.grid(axis="y", linestyle="--", alpha=0.8)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    _annotate_bars(ax, bars, dns_values)
+    if dns_base and len(dns_values) >= 2:
+        ax.text(
+            0.98,
+            0.96,
+            f"DoH ≈ {dns_values[1] / dns_base:.0f}× DNS",
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=8,
+            color="#546E7A",
+            bbox={"boxstyle": "round,pad=0.3", "facecolor": "#ECEFF1", "edgecolor": "none"},
+        )
 
-    # Web per site
+    # Web PCAP vs CDP — same site order as summary.md
     ax = axes[0, 1]
     sites = [row.get("site_label", "?").capitalize() for row in web_rows]
     pcap_values = [_float(row, "pcap_bytes") for row in web_rows]
     cdp_values = [_float(row, "cdp_bytes") for row in web_rows]
     x = range(len(sites))
-    width = 0.35
-    ax.bar([i - width / 2 for i in x], pcap_values, width, label="PCAP", color="#1565C0")
-    ax.bar([i + width / 2 for i in x], cdp_values, width, label="CDP", color="#00838F")
+    width = 0.36
+    ax.bar([i - width / 2 for i in x], pcap_values, width, label="PCAP", color="#1565C0", edgecolor="white")
+    ax.bar([i + width / 2 for i in x], cdp_values, width, label="CDP", color="#00838F", edgecolor="white")
     ax.set_xticks(list(x))
     ax.set_xticklabels(sites, rotation=15, ha="right")
-    ax.set_title("Web traffic by site")
-    ax.legend(frameon=False, fontsize=8)
-    ax.yaxis.set_major_formatter(
-        plt.FuncFormatter(lambda value, _pos: _format_bytes(value))
-    )
+    ax.set_title("Tráfico web por sitio")
+    ax.legend(frameon=False, fontsize=8, loc="upper right")
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda value, _pos: _format_bytes(value)))
     ax.grid(axis="y", linestyle="--", alpha=0.8)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
 
-    # Overhead ratio (clipped for readability)
+    # PCAP/CDP ratio — exact values from summary.md
     ax = axes[1, 0]
-    overhead = []
+    ratios = []
+    ratio_labels = []
     for row in web_rows:
         cdp = _float(row, "cdp_bytes")
         pcap = _float(row, "pcap_bytes")
-        overhead.append((pcap / cdp) if cdp > 0 else 0)
-    ax.bar(sites, overhead, color=CATEGORY_PALETTE[: len(sites)], edgecolor="white")
-    ax.axhline(1.0, color="#C62828", linestyle="--", linewidth=1, label="1× (no overhead)")
-    ax.set_title("PCAP / CDP ratio")
-    ax.set_ylabel("Multiplier")
+        ratio = (pcap / cdp) if cdp > 0 else 0
+        ratios.append(ratio)
+        ratio_labels.append(f"{ratio:.2f}×")
+
+    bars = ax.bar(range(len(sites)), ratios, color=CATEGORY_PALETTE[: len(sites)], edgecolor="white", width=0.62)
+    ax.axhline(1.0, color="#C62828", linestyle="--", linewidth=1, label="1× (sin sobrecoste)")
+    ax.set_title("Ratio PCAP / CDP")
+    ax.set_ylabel("Multiplicador")
+    ax.set_xticks(range(len(sites)))
+    ax.set_xticklabels(sites, rotation=15, ha="right")
     ax.legend(frameon=False, fontsize=8)
     ax.grid(axis="y", linestyle="--", alpha=0.8)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ymax = max(ratios + [1.0])
+    for bar, label in zip(bars, ratio_labels):
+        height = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            height + ymax * 0.03,
+            label,
+            ha="center",
+            va="bottom",
+            fontsize=8,
+            color="#37474F",
+            fontweight="500",
+        )
 
-    # Origin pie
+    # Origin — pooled CDP bytes (same totals as summary.md)
     ax = axes[1, 1]
     origin_labels = [ORIGIN_LABELS.get(row["origin_class"], row["origin_class"]) for row in origin_summary]
-    origin_values = [row["avg_bytes"] for row in origin_summary]
+    origin_values = [row["bytes"] for row in origin_summary]
     origin_colors = [ORIGIN_COLORS.get(row["origin_class"], "#78909C") for row in origin_summary]
-    ax.pie(
+    legend_labels = [
+        f"{label} — {_format_bytes(row['bytes'])} ({row['pct_of_cdp_bytes']:.1f}%)"
+        for label, row in zip(origin_labels, origin_summary)
+    ]
+    wedges, _texts, autotexts = ax.pie(
         origin_values,
-        labels=origin_labels,
         colors=origin_colors,
-        autopct="%1.0f%%",
+        autopct=lambda pct: f"{pct:.0f}%" if pct >= 3 else "",
         startangle=90,
-        textprops={"fontsize": 8},
+        counterclock=False,
+        pctdistance=0.75,
         wedgeprops={"linewidth": 1, "edgecolor": "white"},
+        textprops={"fontsize": 9, "fontweight": "600"},
     )
-    ax.set_title("CDP bytes by origin")
+    ax.legend(
+        wedges,
+        legend_labels,
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        frameon=False,
+        fontsize=8,
+    )
+    ax.set_title("Origen del tráfico CDP (total)")
 
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    fig.text(
+        0.01,
+        0.01,
+        "Datos de la última ejecución analizada · ver summary.md",
+        fontsize=8,
+        color="#78909C",
+    )
+    plt.tight_layout(rect=[0, 0.02, 1, 0.96])
     _save_figure(plt, path, dpi=200)
     return True
 
@@ -525,12 +622,12 @@ def _markdown_report(
 
     lines.extend(["", "## Perfil por origen de recursos", ""])
     if origin_summary:
-        lines.append("| Origen | Muestras | Bytes medios | Porcentaje sobre CDP |")
+        lines.append("| Origen | Sitios | Bytes CDP totales | % del CDP total |")
         lines.append("| --- | ---: | ---: | ---: |")
         for row in origin_summary:
             lines.append(
                 f"| {row['origin_class']} | {row['samples']} | "
-                f"{_format_bytes(row['avg_bytes'])} | {row['avg_pct_of_cdp_bytes']:.1f}% |"
+                f"{_format_bytes(row['bytes'])} | {row['pct_of_cdp_bytes']:.1f}% |"
             )
     else:
         lines.append("No hay perfiles CDP de recursos en esta ejecución.")
@@ -562,7 +659,12 @@ def analyze_run(run_dir: str | Path):
         row["category"] = matching.get("category", "")
 
     origin_rows = _profile_resource_summary(profiles)
-    origin_summary = _summarize(origin_rows, "origin_class", ["bytes", "pct_of_cdp_bytes"])
+    origin_summary = _pooled_origin_summary(origin_rows)
+
+    web_summary = sorted(
+        web_summary,
+        key=lambda row: (row.get("site_label") or "").lower(),
+    )
 
     _write_csv(analysis_dir / "dns_protocol_summary.csv", dns_summary)
     _write_csv(analysis_dir / "web_category_summary.csv", web_summary)
@@ -594,6 +696,7 @@ def analyze_run(run_dir: str | Path):
             "fig_dashboard.png",
             lambda: _plot_run_dashboard(
                 analysis_dir / "fig_dashboard.png",
+                run_dir.name,
                 dns_summary,
                 web_rows,
                 origin_summary,

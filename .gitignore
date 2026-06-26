@@ -209,12 +209,8 @@ __marimo__/
 # macOS
 .DS_Store
 
-# Notas locales y borradores
-notes.txt
-docs/apuntes_personales/
-
-# Material para correos/revisiones, lo dejo local
-docs/email_tutora/
+# Material local (correos, borradores, apuntes) — no subir al repo
+docs/
 
 # Capturas brutas de experimentos: se quedan en local
 *.pcap

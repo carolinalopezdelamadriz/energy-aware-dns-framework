@@ -24,11 +24,11 @@ Resumen rápido de la ejecución: comparación de protocolos DNS, tráfico web c
 
 ## Perfil por origen de recursos
 
-| Origen | Muestras | Bytes medios | Porcentaje sobre CDP |
+| Origen | Sitios | Bytes CDP totales | % del CDP total |
 | --- | ---: | ---: | ---: |
-| first_party | 5 | 329.2 KB | 55.9% |
-| third_party | 3 | 2.0 MB | 68.7% |
-| tracker_or_ads | 3 | 76.7 KB | 4.9% |
+| first_party | 5 | 1.6 MB | 20.7% |
+| third_party | 3 | 5.9 MB | 76.4% |
+| tracker_or_ads | 3 | 230.2 KB | 2.9% |
 
 ## Figuras generadas
 
