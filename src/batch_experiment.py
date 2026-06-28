@@ -15,28 +15,26 @@ def _default_domain_from_url(url):
 
 def load_sites(sites_file):
     sites = []
-    with open(sites_file, newline="", encoding="utf-8") as csv_file:
-        reader = csv.DictReader(csv_file)
+    with open(sites_file, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
         for index, row in enumerate(reader, start=1):
             url = row.get("url", "").strip()
             if not url:
-                raise ValueError(f"Missing url in row {index} of {sites_file}")
+                raise ValueError(f"Falta url en la fila {index} de {sites_file}")
 
             domain = row.get("domain", "").strip() or _default_domain_from_url(url)
             label = row.get("label", "").strip() or domain
             category = row.get("category", "").strip() or "uncategorized"
 
-            sites.append(
-                {
-                    "label": label,
-                    "category": category,
-                    "domain": domain,
-                    "url": url,
-                }
-            )
+            sites.append({
+                "label": label,
+                "category": category,
+                "domain": domain,
+                "url": url,
+            })
 
     if not sites:
-        raise ValueError(f"No sites found in {sites_file}")
+        raise ValueError(f"No se encontraron sites en {sites_file}")
 
     return sites
 
@@ -68,6 +66,9 @@ def run_batch_experiment(
     skip_dns=False,
     skip_web=False,
     doq_resolver="quad9",
+    headless=False,
+    fresh_profile=False,
+    site_delay=5,
 ):
     sites = load_sites(sites_file)
     run_id = build_run_id()
@@ -75,7 +76,7 @@ def run_batch_experiment(
 
     config = {
         "sites_file": str(sites_file),
-        "protocols": protocols,
+        "protocols": list(protocols),
         "dns_repetitions": dns_repetitions,
         "web_repetitions": web_repetitions,
         "interface": interface,
@@ -83,47 +84,68 @@ def run_batch_experiment(
         "skip_dns": skip_dns,
         "skip_web": skip_web,
         "doq_resolver": doq_resolver,
+        "headless": headless,
+        "fresh_profile": fresh_profile,
+        "site_delay": site_delay,
     }
     write_manifest(run_output_dir, config, sites)
 
     print(f"\n=== BATCH EXPERIMENT: {run_id} ===")
-    print(f"Sites: {len(sites)}")
-    print(f"Output: {run_output_dir}")
+    print(f"Sites: {len(sites)}  |  Output: {run_output_dir}")
+    if headless:
+        print("Modo headless activado")
+
+    failed_sites = []
 
     for site_index, site in enumerate(sites, start=1):
-        print(
-            f"\n--- Site {site_index}/{len(sites)}: "
-            f"{site['label']} ({site['domain']}) ---"
-        )
+        print(f"\n[{site_index}/{len(sites)}] {site['label']} ({site['domain']}) — {site['category']}")
 
-        if not skip_dns:
-            from dns_experiment import run_dns_experiment
+        try:
+            if not skip_dns:
+                from dns_experiment import run_dns_experiment
 
-            for protocol in protocols:
-                run_dns_experiment(
-                    site["domain"],
-                    protocol,
-                    repetitions=dns_repetitions,
-                    output_dir=run_output_dir,
-                    interface=interface,
-                    site_label=site["label"],
-                    category=site["category"],
-                    doq_resolver=doq_resolver,
-                )
+                for protocol in protocols:
+                    run_dns_experiment(
+                        site["domain"],
+                        protocol,
+                        repetitions=dns_repetitions,
+                        output_dir=run_output_dir,
+                        interface=interface,
+                        site_label=site["label"],
+                        category=site["category"],
+                        doq_resolver=doq_resolver,
+                    )
 
-        if not skip_web:
-            from web_experiment import run_web_experiment
+            if not skip_web:
+                from web_experiment import run_web_experiment
 
-            for run_index in range(1, web_repetitions + 1):
-                print(f"\nWeb repetition {run_index}/{web_repetitions}")
-                run_web_experiment(
-                    site["url"],
-                    use_cdp=use_cdp,
-                    output_dir=run_output_dir,
-                    interface=interface,
-                    site_label=site["label"],
-                    category=site["category"],
-                )
+                for run_index in range(1, web_repetitions + 1):
+                    if web_repetitions > 1:
+                        print(f"  Visita web {run_index}/{web_repetitions}")
+                    run_web_experiment(
+                        site["url"],
+                        use_cdp=use_cdp,
+                        output_dir=run_output_dir,
+                        interface=interface,
+                        site_label=site["label"],
+                        category=site["category"],
+                        headless=headless,
+                        fresh_profile=fresh_profile,
+                    )
 
-    print(f"\nBatch finished. Results written to: {run_output_dir}")
+        except Exception as exc:
+            print(f"  ERROR en {site['label']}: {exc}")
+            failed_sites.append({"label": site["label"], "error": str(exc)})
+
+        # pausa entre sites para no sobrecargar la red ni la máquina
+        if site_index < len(sites) and site_delay > 0:
+            time.sleep(site_delay)
+
+    print(f"\nBatch terminado. Resultados en: {run_output_dir}")
+
+    if failed_sites:
+        print(f"\nSites con error ({len(failed_sites)}):")
+        for entry in failed_sites:
+            print(f"  - {entry['label']}: {entry['error']}")
+
     return run_output_dir

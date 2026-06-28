@@ -28,7 +28,7 @@ def parse_args():
         "--doq-resolver",
         choices=("quad9", "cloudflare", "google"),
         default="quad9",
-        help="Resolver DoQ usado en la medición. Conviene fijar uno para no ensuciar los PCAP.",
+        help="Resolver DoQ. Se fija uno para no contaminar los PCAP con handshakes fallidos.",
     )
     parser.add_argument(
         "--repetitions",
@@ -44,7 +44,7 @@ def parse_args():
     parser.add_argument(
         "--interface",
         default=None,
-        help="Interfaz de red usada por tcpdump, por ejemplo en0 en macOS",
+        help="Interfaz de red para tcpdump (ej. en0 en macOS)",
     )
     parser.add_argument(
         "--no-cdp",
@@ -52,14 +52,24 @@ def parse_args():
         help="Desactiva el perfilado de recursos con Selenium/CDP",
     )
     parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Abre Chrome en modo headless (recomendado para el experimento masivo)",
+    )
+    parser.add_argument(
+        "--fresh-profile",
+        action="store_true",
+        help="Usa un perfil temporal de Chrome por visita (evita contaminación de caché y service workers)",
+    )
+    parser.add_argument(
         "--sites-file",
         default="data/sites_sample.csv",
-        help="CSV con columnas label, domain y url para el modo batch",
+        help="CSV con columnas label, category, domain, url para el modo batch",
     )
     parser.add_argument(
         "--run-dir",
         default=None,
-        help="Carpeta de resultados que se quiere analizar, por ejemplo results/20260626_103000",
+        help="Carpeta de resultados a analizar (modo analyze)",
     )
     parser.add_argument(
         "--web-repetitions",
@@ -78,18 +88,20 @@ def parse_args():
         help="Saltar los experimentos web en modo batch",
     )
     parser.add_argument(
+        "--site-delay",
+        type=int,
+        default=5,
+        help="Segundos de pausa entre sites en modo batch (default: 5)",
+    )
+    parser.add_argument(
         "--check-doq",
         action="store_true",
-        help="En modo check, comprueba conectividad DoQ con el resolver elegido",
+        help="En modo check, comprueba la conectividad DoQ con el resolver elegido",
     )
     return parser.parse_args()
 
 
 def main():
-    """
-      Experimentos DNS para DNS clásico, DoH y DoQ
-    """
-
     args = parse_args()
 
     if args.mode == "check":
@@ -116,6 +128,9 @@ def main():
             skip_dns=args.skip_dns,
             skip_web=args.skip_web,
             doq_resolver=args.doq_resolver,
+            headless=args.headless,
+            fresh_profile=args.fresh_profile,
+            site_delay=args.site_delay,
         )
         return
 
@@ -148,6 +163,8 @@ def main():
             use_cdp=not args.no_cdp,
             output_dir=args.output_dir,
             interface=args.interface,
+            headless=args.headless,
+            fresh_profile=args.fresh_profile,
         )
 
 
