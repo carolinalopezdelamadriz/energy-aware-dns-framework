@@ -82,13 +82,56 @@ Choose specific DNS protocols:
 python src/main.py --mode dns --protocols dns doh
 ```
 
+## Website sample
+
+The main experiment targets 100 websites drawn from `data/sites_100.csv`, organised into ten thematic categories with ten sites each.
+
+### Category selection rationale
+
+The ten categories cover sectors with different privacy expectations, traffic volumes and content profiles, which is important for making the carbon footprint comparison meaningful across diverse real-world browsing scenarios:
+
+| Category | Rationale |
+| --- | --- |
+| `news` | High-frequency navigation, heavy use of third-party trackers and ads |
+| `banking` | Privacy-critical sector; users expect confidentiality of DNS queries |
+| `public_admin` | Government services with sensitive interactions and moderate traffic |
+| `education` | Mix of static content (university sites) and dynamic platforms (MOOCs) |
+| `ecommerce` | High tracker density, personalisation scripts and CDN-heavy payloads |
+| `technology` | Developer-oriented sites; typically lower tracker load |
+| `social_media` | Heaviest third-party footprint; major contributor to global web traffic |
+| `streaming` | Largest share of internet bytes globally; relevant for carbon impact |
+| `health` | Sensitive category where DNS query confidentiality is especially valuable |
+| `standards` | Lightweight, mostly static; used as a low-overhead reference category |
+
+This classification is consistent with the taxonomy used by Cloudflare Radar and with the traffic-category breakdown reported in The Shift Project's *Lean ICT: Towards Digital Sobriety* report [1], which identifies video streaming, social media and news as the dominant categories of internet traffic by volume.
+
+### Site selection methodology
+
+Sites within each category were selected following criteria similar to those applied in DNS and web measurement research [2, 3]:
+
+- **Popularity**: sites ranked in the Tranco top-1M list [4], which provides a research-oriented, manipulation-resistant ranking built from multiple popularity datasets (Alexa, Majestic, Umbrella, Quantcast).
+- **Geographic diversity**: the sample includes both internationally dominant sites and Spanish-language or Spanish-hosted sites, reflecting the European regulatory context (GDPR) and the use of a European resolver (Quad9).
+- **Balance**: ten sites per category to avoid statistical bias toward any single sector.
+- **Accessibility**: sites reachable without authentication, so that Selenium can capture a complete page load.
+
+### References
+
+[1] The Shift Project (2019). *Lean ICT: Towards Digital Sobriety*. Available at: theshiftproject.org
+
+[2] Böttger, T., Cuadrado, F., Tyson, G., Castro, I., & Uhlig, S. (2019). An empirical study of the cost of DNS-over-HTTPS. *Proceedings of the ACM IMC 2019*. DOI: 10.1145/3355369.3355575
+
+[3] Hounsel, A., Borgolte, K., Schmitt, P., Holland, J., & Feamster, N. (2020). Comparing the effects of DNS, DoT, and DoH on web performance. *Proceedings of The Web Conference 2020*. DOI: 10.1145/3366423.3380139
+
+[4] Le Pochat, V., Van Goethem, T., Tajalizadehkhoob, S., Korczyński, M., & Joosen, W. (2019). Tranco: A research-oriented top sites ranking hardened against manipulation. *NDSS Symposium 2019*. DOI: 10.14722/ndss.2019.23386
+
 ## Structure
 
 ```text
 energy-aware-dns-framework/
 ├── src/                         # framework code
 ├── data/
-│   └── sites_sample.csv         # small test sample
+│   ├── sites_sample.csv         # five-site pilot sample
+│   └── sites_100.csv            # 100-site main sample (10 per category)
 ├── results/
 │   ├── run_20260626/            # pilot run kept as reference
 │   └── archive/                 # local runs that should not be pushed
@@ -113,13 +156,18 @@ Then the batch can be launched with:
 ```bash
 sudo -E python3 src/main.py \
   --mode batch \
-  --sites-file data/sites_sample.csv \
+  --sites-file data/sites_100.csv \
   --protocols dns doh doq \
   --repetitions 5 \
   --web-repetitions 1 \
   --interface en0 \
-  --doq-resolver quad9
+  --doq-resolver quad9 \
+  --headless \
+  --fresh-profile \
+  --site-delay 5
 ```
+
+`--headless` runs Chrome without a visible window. `--fresh-profile` creates an isolated temporary Chrome profile per site visit, which prevents browser cache and service workers from affecting the CDP byte count between sites. `--site-delay` adds a short pause between sites to avoid saturating the local network.
 
 This creates a new folder inside `results/`, for example:
 
