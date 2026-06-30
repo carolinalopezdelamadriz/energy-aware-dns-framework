@@ -6,7 +6,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT/results"
 
-echo "Removing debug run folders and loose PCAPs (keeping run_20260626)..."
 
 for dir in 20260626_003818 20260626_003904 20260626_011656 20260626_XXXXXX dns_clean_test doq_fix_test analysis; do
   if [ -d "$dir" ]; then
