@@ -42,23 +42,23 @@ To check whether DoQ works from the current network:
 python3 src/main.py --mode check --interface en0 --check-doq --doq-resolver quad9
 ```
 
-On macOS, `tcpdump` normally needs administrator permissions.
+I use macOS, where `tcpdump` normally needs administrator permissions. 
 
 ## Basic usage
 
-Run the full default flow:
+To run the full default flow:
 
 ```bash
 python src/main.py
 ```
 
-Run only the DNS comparison:
+To run only the DNS comparison:
 
 ```bash
 python src/main.py --mode dns --domain bbc.com --repetitions 5
 ```
 
-On macOS, it is usually better to pass the network interface explicitly. For Wi-Fi this is often `en0`:
+On mac, it is usually better to pass the network interface explicitly. For Wi-Fi is usually `en0`:
 
 ```bash
 python src/main.py --mode dns --protocols dns doh --domain bbc.com --repetitions 5 --interface en0
@@ -70,13 +70,13 @@ If `tcpdump` fails because of permissions:
 sudo -E python src/main.py --mode dns --protocols dns doh --domain bbc.com --repetitions 5 --interface en0
 ```
 
-Run only the web browsing part:
+To run only the web browsing part:
 
 ```bash
 python src/main.py --mode web --url https://www.bbc.com
 ```
 
-Choose specific DNS protocols:
+To choose specific DNS protocols:
 
 ```bash
 python src/main.py --mode dns --protocols dns doh
@@ -84,7 +84,7 @@ python src/main.py --mode dns --protocols dns doh
 
 ## Website sample
 
-The main experiment targets 100 websites drawn from `data/sites_100.csv`, organised into ten thematic categories with ten sites each.
+The main experiment targets 100 websites drawn from `data/sites_100.csv`, organized into ten thematic categories with ten sites each.
 
 ### Category selection rationale
 
@@ -114,7 +114,7 @@ Sites within each category were selected following criteria similar to those app
 - **Balance**: ten sites per category to avoid statistical bias toward any single sector.
 - **Accessibility**: sites reachable without authentication, so that Selenium can capture a complete page load.
 
-### References
+### References for selecting the website sample
 
 [1] The Shift Project (2019). *Lean ICT: Towards Digital Sobriety*. Available at: theshiftproject.org
 
@@ -139,11 +139,11 @@ energy-aware-dns-framework/
 └── requirements.txt
 ```
 
-New executions create timestamped folders inside `results/`. PCAP files are ignored because they can be large and they are raw network captures. The pilot run keeps CSV files, JSON profiles and figures so the pipeline can be reviewed without repeating the whole experiment.
+New executions create timestamped folders inside `results/`. PCAP files are ignored because they can be large and they are raw network captures. The actual functional version run keeps CSV files, JSON profiles and figures so the pipeline can be reviewed without repeating the whole experiment.
 
 ## Batch execution
 
-The folder `results/run_20260626/` contains a small first run with five websites. I use it as an initial validation of the framework, not as the final result of the TFG.
+The folder `results/run_20260626/` contains a small first run with five websites, as a initial validation.
 
 First I would check the environment:
 
