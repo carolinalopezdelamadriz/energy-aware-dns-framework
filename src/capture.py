@@ -33,7 +33,7 @@ def start_capture(output_file, filter_rule=None, interface=None):
     if filter_rule:
         cmd.extend(filter_rule.split())
     else:
-        # HTTP, HTTPS, classic DNS and DoQ.
+        # HTTP, HTTPS, classic DNS and DoQ
         cmd.extend(
             [
                 "port",

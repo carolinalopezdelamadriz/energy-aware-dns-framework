@@ -10,9 +10,7 @@ from typing import Any
 
 from results import ensure_output_dir, write_json
 
-# ---------------------------------------------------------------------------
-# Plot styling
-# ---------------------------------------------------------------------------
+# estilo plots 
 
 PROTOCOL_COLORS = {
     "dns": "#1B5E20",

@@ -8,8 +8,8 @@ class CFPResult:
     co2_kg: float
 
 
-# Constantes del modelo energético — ajustar según el modelo final elegido
-# Intensidad energética de la red (J/byte) — valor de referencia bibliográfico
+# Constantes del modelo energético — ajustar según el modelo final 
+# Intensidad energética de la red (J/byte) — usar aproximacion de bibliografia
 DEFAULT_ENERGY_PER_BYTE_J = 1e-7
 
 # Factor de emisión eléctrico (kgCO2e/kWh) — media UE aproximada

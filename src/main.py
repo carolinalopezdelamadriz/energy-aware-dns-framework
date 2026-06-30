@@ -44,7 +44,7 @@ def parse_args():
     parser.add_argument(
         "--interface",
         default=None,
-        help="Interfaz de red para tcpdump (ej. en0 en macOS)",
+        help="Interfaz de red para tcpdump",
     )
     parser.add_argument(
         "--no-cdp",
@@ -54,7 +54,7 @@ def parse_args():
     parser.add_argument(
         "--headless",
         action="store_true",
-        help="Abre Chrome en modo headless (recomendado para el experimento masivo)",
+        help="Abre Chrome en modo headless (para el experimento masivo)",
     )
     parser.add_argument(
         "--fresh-profile",

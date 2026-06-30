@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Limpia ejecuciones de prueba que se hayan quedado a medias.
-# Algunas pueden pertenecer a root si se lanzaron experimentos con sudo.
-# Run manually: bash scripts/cleanup_local_results.sh
+# Limpia ejecuciones de prueba que se hayan quedado a medias
+# bash scripts/cleanup_local_results.sh
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

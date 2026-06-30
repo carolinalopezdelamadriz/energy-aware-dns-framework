@@ -91,7 +91,7 @@ def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fre
     """
     Carga una URL con Selenium + CDP y devuelve un perfil de tráfico HTTP.
 
-    Retorna:
+    Devuelve:
         {
             "url": ...,
             "by_type": {tipo: bytes, ...},
@@ -105,7 +105,7 @@ def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fre
         try:
             driver.get(url)
         except TimeoutException:
-            print(f"Timeout cargando {url} — se analizará el tráfico capturado hasta ahora")
+            print(f"Timeout cargando {url} — se va a analizar el tráfico capturado hasta ahora")
 
         time.sleep(duration)
         logs = driver.get_log("performance")

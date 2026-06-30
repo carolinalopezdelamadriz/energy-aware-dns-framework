@@ -59,7 +59,7 @@ async def _resolve_doq_aioquic(domain, host, server_name, port=DEFAULT_DOQ_PORT,
         from aioquic.quic.configuration import QuicConfiguration
         from aioquic.quic.events import StreamDataReceived
     except ImportError as exc:
-        raise RuntimeError("aioquic no está instalado. Ejecuta: pip install aioquic") from exc
+        raise RuntimeError("aioquic no está instalado. Ejecutar: pip install aioquic") from exc
 
     class DoQClientProtocol(QuicConnectionProtocol):
         def __init__(self, *args, **kwargs):
@@ -112,8 +112,7 @@ def _resolve_doq_kdig(domain, host):
 
 
 def resolve_doq(domain, resolver_name=DEFAULT_DOQ_RESOLVER, use_kdig_fallback=True):
-    # Usamos un único resolver por experimento para no contaminar el PCAP con handshakes
-    # de resolvers que se prueban y fallan.
+    # 1 unico resolver
     resolver = get_doq_resolver(resolver_name)
 
     try:
