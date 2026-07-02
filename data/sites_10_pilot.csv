@@ -1,0 +1,11 @@
+label,category,domain,url
+bbc,news,bbc.com,https://www.bbc.com
+santander,banking,santander.com,https://www.santander.com
+ine,public_admin,ine.es,https://www.ine.es
+wikipedia,education,wikipedia.org,https://www.wikipedia.org
+amazon,ecommerce,amazon.com,https://www.amazon.com
+github,technology,github.com,https://github.com
+twitter,social_media,x.com,https://x.com
+youtube,streaming,youtube.com,https://www.youtube.com
+webmd,health,webmd.com,https://www.webmd.com
+ietf,standards,ietf.org,https://www.ietf.org

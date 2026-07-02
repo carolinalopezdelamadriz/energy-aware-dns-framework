@@ -32,7 +32,7 @@ def get_doq_resolver(name=DEFAULT_DOQ_RESOLVER):
         return DOQ_RESOLVERS[name]
     except KeyError as exc:
         valid = ", ".join(sorted(DOQ_RESOLVERS))
-        raise ValueError(f"Resolver DoQ desconocido '{name}'. Valores válidos: {valid}") from exc
+        raise ValueError(f"Unknown DoQ resolver '{name}'. Valid values: {valid}") from exc
 
 
 def _build_dns_query(domain):
@@ -59,7 +59,7 @@ async def _resolve_doq_aioquic(domain, host, server_name, port=DEFAULT_DOQ_PORT,
         from aioquic.quic.configuration import QuicConfiguration
         from aioquic.quic.events import StreamDataReceived
     except ImportError as exc:
-        raise RuntimeError("aioquic no está instalado. Ejecutar: pip install aioquic") from exc
+        raise RuntimeError("aioquic is not installed. Run: pip install aioquic") from exc
 
     class DoQClientProtocol(QuicConnectionProtocol):
         def __init__(self, *args, **kwargs):
@@ -112,7 +112,7 @@ def _resolve_doq_kdig(domain, host):
 
 
 def resolve_doq(domain, resolver_name=DEFAULT_DOQ_RESOLVER, use_kdig_fallback=True):
-    # 1 unico resolver
+    # single fixed resolver
     resolver = get_doq_resolver(resolver_name)
 
     try:
@@ -120,10 +120,10 @@ def resolve_doq(domain, resolver_name=DEFAULT_DOQ_RESOLVER, use_kdig_fallback=Tr
             _resolve_doq_aioquic(domain, host=resolver["host"], server_name=resolver["server_name"])
         )
     except Exception as exc:
-        print(f"DoQ aioquic falló ({resolver['name']}): {exc}")
+        print(f"DoQ aioquic failed ({resolver['name']}): {exc}")
 
     if use_kdig_fallback:
-        print(f"Probando kdig como fallback para {resolver['name']}...")
+        print(f"Trying kdig as fallback for {resolver['name']}...")
         return _resolve_doq_kdig(domain, resolver["host"])
 
     return False

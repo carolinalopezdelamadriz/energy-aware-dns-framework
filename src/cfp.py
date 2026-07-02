@@ -8,12 +8,21 @@ class CFPResult:
     co2_kg: float
 
 
-# Constantes del modelo energético — ajustar según el modelo final 
-# Intensidad energética de la red (J/byte) — usar aproximacion de bibliografia
-DEFAULT_ENERGY_PER_BYTE_J = 1e-7
+# Energy model constants
+# Network energy intensity (J/byte) - Sustainable Web Design Model v4 (2024),
+# "networks" segment only (0.059 kWh/GB), since that is the system boundary
+# this framework actually measures (network traffic via PCAP)
 
-# Factor de emisión eléctrico (kgCO2e/kWh) — media UE aproximada
-DEFAULT_CO2_PER_KWH = 0.4
+# https://sustainablewebdesign.org/estimating-digital-emissions/
+
+DEFAULT_ENERGY_PER_BYTE_J = 2.124e-4
+
+# Grid carbon intensity (kgCO2e/kWh) - Spanish electricity mix, CNMC
+# 2024 generation data: 283 gCO2eq/kWh
+
+# CNMC, Acuerdo de Etiquetado de la Electricidad
+
+DEFAULT_CO2_PER_KWH = 0.283
 
 
 def bytes_to_cfp(
@@ -22,7 +31,7 @@ def bytes_to_cfp(
     co2_per_kwh: float = DEFAULT_CO2_PER_KWH,
 ) -> CFPResult:
     if total_bytes < 0:
-        raise ValueError("total_bytes debe ser un número no negativo")
+        raise ValueError("total_bytes must be a non-negative number")
 
     energy_j = total_bytes * energy_per_byte_j
     energy_kwh = energy_j / 3_600_000.0
@@ -34,5 +43,5 @@ def bytes_to_cfp(
 def pretty_print_cfp(label: str, result: CFPResult) -> None:
     print(f"\n--- CFP: {label} ---")
     print(f"Bytes           : {result.bytes}")
-    print(f"Energía [kWh]   : {result.energy_kwh:.6e}")
-    print(f"CO₂ [kgCO₂e]    : {result.co2_kg:.6e}")
+    print(f"Energy [kWh]    : {result.energy_kwh:.6e}")
+    print(f"CO2 [kgCO2e]    : {result.co2_kg:.6e}")

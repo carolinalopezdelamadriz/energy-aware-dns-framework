@@ -26,7 +26,7 @@ TRACKER_KEYWORDS = (
     "metrics",
 )
 
-# Tiempo máximo de espera para que cargue una página
+# Maximum time to wait for a page to load
 PAGE_LOAD_TIMEOUT = 45
 
 
@@ -40,8 +40,8 @@ def _build_chrome_driver(headless: bool = False, fresh_profile: bool = False) ->
         options.add_argument("--disable-dev-shm-usage")
 
     if fresh_profile:
-        # directorio temporal de perfil para que cada visita empiece sin caché ni
-        # service workers de sesiones anteriores — importante para reproducibilidad
+        # Temporary profile directory so each visit starts without cache or
+        # service workers from previous sessions - important for reproducibility
         tmpdir = tempfile.mkdtemp(prefix="chrome_profile_")
         atexit.register(shutil.rmtree, tmpdir, ignore_errors=True)
         options.add_argument(f"--user-data-dir={tmpdir}")
@@ -61,7 +61,7 @@ def open_website(url: str, duration: int = 10, headless: bool = False, fresh_pro
         driver.get(url)
         time.sleep(duration)
     except TimeoutException:
-        print(f"Timeout cargando {url}")
+        print(f"Timeout loading {url}")
     finally:
         driver.quit()
 
@@ -89,15 +89,17 @@ def _classify_resource(page_url: str, resource_url: str) -> str:
 
 def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fresh_profile: bool = False) -> dict:
     """
-    Carga una URL con Selenium + CDP y devuelve un perfil de tráfico HTTP.
+    Loads a URL with Selenium + CDP and returns an HTTP traffic profile.
 
-    Devuelve:
+    Returns:
         {
             "url": ...,
-            "by_type": {tipo: bytes, ...},
-            "by_origin": {clase_origen: bytes, ...},
+            "by_type": {type: bytes, ...},
+            "by_origin": {origin_class: bytes, ...},
             "total_bytes": total,
-            "resources": [{"url", "type", "origin_class", "encodedDataLength"}, ...]
+            "network_bytes": total excluding cache/service-worker-served bytes,
+            "cached_bytes": bytes served from disk cache or service worker,
+            "resources": [{"url", "type", "origin_class", "encodedDataLength", "from_cache"}, ...]
         }
     """
     driver = _build_chrome_driver(headless=headless, fresh_profile=fresh_profile)
@@ -105,7 +107,7 @@ def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fre
         try:
             driver.get(url)
         except TimeoutException:
-            print(f"Timeout cargando {url} — se va a analizar el tráfico capturado hasta ahora")
+            print(f"Timeout loading {url} -- analyzing traffic captured so far")
 
         time.sleep(duration)
         logs = driver.get_log("performance")
@@ -127,8 +129,33 @@ def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fre
                 response = params.get("response", {})
                 resource_type = params.get("type") or response.get("mimeType", "other")
                 url_resp = response.get("url", "")
+
+                # Only http(s) resources are relevant: chrome://, chrome-extension://,
+                # data: and blob: URLs are bundled with the browser or generated
+                # in-memory and never cross the network interface
+
+                # If we keep them,
+                # CDP totals get inflated with bytes the PCAP can never see (this is
+                # what happened with chrome://new-tab-page/* being logged before the
+                # actual navigation even starts)
+                if not url_resp.startswith(("http://", "https://")):
+                    continue
+
+                # CDP exposes whether the resource came from disk cache or a
+                # Service Worker instead of the network
+                # Those bytes never
+                # cross the network interface, so they will never show up in
+                # the PCAP - they must be excluded from the PCAP vs CDP
+                # comparison or the overhead comes out negative
+                from_cache = bool(
+                    response.get("fromDiskCache") or response.get("fromServiceWorker")
+                )
                 if request_id:
-                    meta_by_request[request_id] = {"type": resource_type, "url": url_resp}
+                    meta_by_request[request_id] = {
+                        "type": resource_type,
+                        "url": url_resp,
+                        "from_cache": from_cache,
+                    }
 
             elif method == "Network.loadingFinished":
                 request_id = params.get("requestId")
@@ -140,21 +167,37 @@ def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fre
         by_origin = defaultdict(int)
         resources = []
         total_bytes = 0
+        network_bytes = 0
+        cached_bytes = 0
 
         for request_id, size in bytes_by_request.items():
-            meta = meta_by_request.get(request_id, {"type": "unknown", "url": ""})
+            meta = meta_by_request.get(request_id)
+            if meta is None:
+                # No matching http(s) responseReceived event was kept for this
+                # request (filtered out above, or a type of event we don't
+                # track) - skip it instead of silently bucketing it as
+                # "unknown_origin", which would reintroduce the same
+                # non-network bytes we just filtered out
+                continue
+
             rtype = meta.get("type", "unknown")
             url_resp = meta.get("url", "")
+            from_cache = meta.get("from_cache", False)
             origin_class = _classify_resource(url, url_resp)
             by_type[rtype] += size
             by_origin[origin_class] += size
             total_bytes += size
+            if from_cache:
+                cached_bytes += size
+            else:
+                network_bytes += size
             resources.append({
                 "requestId": request_id,
                 "type": rtype,
                 "origin_class": origin_class,
                 "url": url_resp,
                 "encodedDataLength": size,
+                "from_cache": from_cache,
             })
 
         return {
@@ -162,6 +205,8 @@ def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fre
             "by_type": dict(by_type),
             "by_origin": dict(by_origin),
             "total_bytes": total_bytes,
+            "network_bytes": network_bytes,
+            "cached_bytes": cached_bytes,
             "resources": resources,
         }
 

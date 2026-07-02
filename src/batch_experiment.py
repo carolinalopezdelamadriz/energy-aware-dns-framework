@@ -20,7 +20,7 @@ def load_sites(sites_file):
         for index, row in enumerate(reader, start=1):
             url = row.get("url", "").strip()
             if not url:
-                raise ValueError(f"Falta url en la fila {index} de {sites_file}")
+                raise ValueError(f"Missing url in row {index} of {sites_file}")
 
             domain = row.get("domain", "").strip() or _default_domain_from_url(url)
             label = row.get("label", "").strip() or domain
@@ -34,7 +34,7 @@ def load_sites(sites_file):
             })
 
     if not sites:
-        raise ValueError(f"No se encontraron sites en {sites_file}")
+        raise ValueError(f"No sites found in {sites_file}")
 
     return sites
 
@@ -93,7 +93,7 @@ def run_batch_experiment(
     print(f"\n=== BATCH EXPERIMENT: {run_id} ===")
     print(f"Sites: {len(sites)}  |  Output: {run_output_dir}")
     if headless:
-        print("Modo headless activado")
+        print("Headless mode enabled")
 
     failed_sites = []
 
@@ -121,7 +121,7 @@ def run_batch_experiment(
 
                 for run_index in range(1, web_repetitions + 1):
                     if web_repetitions > 1:
-                        print(f"  Visita web {run_index}/{web_repetitions}")
+                        print(f"  Web visit {run_index}/{web_repetitions}")
                     run_web_experiment(
                         site["url"],
                         use_cdp=use_cdp,
@@ -134,17 +134,17 @@ def run_batch_experiment(
                     )
 
         except Exception as exc:
-            print(f"  ERROR en {site['label']}: {exc}")
+            print(f"  ERROR in {site['label']}: {exc}")
             failed_sites.append({"label": site["label"], "error": str(exc)})
 
-        # pausa entre sites para no sobrecargar la red ni la máquina
+        # pause between sites to avoid overloading the network or the machine
         if site_index < len(sites) and site_delay > 0:
             time.sleep(site_delay)
 
-    print(f"\nBatch terminado. Resultados en: {run_output_dir}")
+    print(f"\nBatch completed. Results in: {run_output_dir}")
 
     if failed_sites:
-        print(f"\nSites con error ({len(failed_sites)}):")
+        print(f"\nSites with errors ({len(failed_sites)}):")
         for entry in failed_sites:
             print(f"  - {entry['label']}: {entry['error']}")
 

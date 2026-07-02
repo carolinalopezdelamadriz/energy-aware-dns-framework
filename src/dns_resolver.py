@@ -21,7 +21,7 @@ def resolve_classic(domain):
         return results
 
     except dns.resolver.NXDOMAIN:
-        # dominio no existe pero la query ya se envió
+        # domain does not exist, but the query was already sent
         return []
 
     except dns.exception.DNSException:

@@ -5,12 +5,12 @@ import json
 import os
 from collections import defaultdict
 from pathlib import Path
-from statistics import mean
+from statistics import mean, median, quantiles
 from typing import Any
 
 from results import ensure_output_dir, write_json
 
-# estilo plots 
+# plot styling
 
 PROTOCOL_COLORS = {
     "dns": "#1B5E20",
@@ -32,14 +32,6 @@ ORIGIN_LABELS = {
     "unknown_origin": "Unknown",
 }
 
-CATEGORY_PALETTE = [
-    "#1565C0",
-    "#00838F",
-    "#6A1B9A",
-    "#EF6C00",
-    "#455A64",
-]
-
 PLOT_STYLE = {
     "figure.facecolor": "#FAFAFA",
     "axes.facecolor": "#FFFFFF",
@@ -54,6 +46,31 @@ PLOT_STYLE = {
     "font.sans-serif": ["DejaVu Sans", "Arial", "Helvetica"],
     "grid.color": "#ECEFF1",
     "grid.linewidth": 0.8,
+}
+
+TOP_N_OUTLIERS = 10
+
+# Below this many CDP bytes, a page load is treated as failed/blocked rather
+# than a genuinely tiny site. Chosen from the observed 100-site batch: 9
+# sites clustered under 2.8 KB (confirmed via curl to be anti-bot challenge
+# pages served instead of the real site to headless Chrome), then the next
+# lowest legitimate site was at 11.4 KB — a clean, well-separated gap.
+MIN_PLAUSIBLE_CDP_BYTES = 5000
+
+# Overhead values beyond Q3 + this many IQRs (computed on the sites that
+# pass the CDP-floor check above) are flagged as likely capture noise —
+# background traffic unrelated to the visited site polluting the PCAP (see
+# ISSUES_LOG.md Issue 7). 3x IQR is the conventional "extreme outlier"
+# threshold (vs. 1.5x for a regular outlier), used here deliberately
+# conservatively to avoid flagging sites that are just genuinely
+# third-party/tracker heavy.
+OUTLIER_IQR_MULTIPLIER = 3
+
+FLAG_BOT_BLOCKED = "likely_bot_blocked_or_failed_load"
+FLAG_CAPTURE_NOISE = "likely_capture_noise"
+FLAG_LABELS = {
+    FLAG_BOT_BLOCKED: "Likely bot-blocked / failed load",
+    FLAG_CAPTURE_NOISE: "Likely capture noise",
 }
 
 
@@ -84,6 +101,10 @@ def _float(row: dict[str, str], key: str, default: float = 0.0) -> float:
         return default
 
 
+def _category_label(category: str) -> str:
+    return (category or "uncategorized").replace("_", " ").title()
+
+
 def _summarize(rows: list[dict[str, str]], group_key: str, metrics: list[str]):
     grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
@@ -98,14 +119,39 @@ def _summarize(rows: list[dict[str, str]], group_key: str, metrics: list[str]):
         for metric in metrics:
             values = [_float(row, metric) for row in group_rows]
             item[f"avg_{metric}"] = mean(values) if values else 0.0
+            item[f"median_{metric}"] = median(values) if values else 0.0
             item[f"min_{metric}"] = min(values) if values else 0.0
             item[f"max_{metric}"] = max(values) if values else 0.0
         summary.append(item)
     return summary
 
 
-def _sort_web_rows(web_rows: list[dict[str, str]]) -> list[dict[str, str]]:
-    return sorted(web_rows, key=lambda row: (row.get("site_label") or "").lower())
+def _top_rows(web_rows: list[dict[str, str]], key: str, top_n: int = TOP_N_OUTLIERS) -> list[dict[str, str]]:
+    return sorted(web_rows, key=lambda row: _float(row, key), reverse=True)[:top_n]
+
+
+def _flag_web_rows(web_rows: list[dict[str, str]]) -> dict[int, str]:
+    """Flag web visits whose PCAP/CDP figures likely reflect a measurement
+    artifact rather than real site traffic, so category stats and plots can
+    exclude them instead of being silently skewed. See ISSUES_LOG.md.
+    """
+    flags: dict[int, str] = {}
+    remaining: list[tuple[int, float]] = []
+    for i, row in enumerate(web_rows):
+        if _float(row, "cdp_bytes") < MIN_PLAUSIBLE_CDP_BYTES:
+            flags[i] = FLAG_BOT_BLOCKED
+        else:
+            remaining.append((i, _float(row, "overhead_pct")))
+
+    if len(remaining) >= 4:
+        values = sorted(value for _, value in remaining)
+        q1, _, q3 = quantiles(values, n=4)
+        threshold = q3 + OUTLIER_IQR_MULTIPLIER * (q3 - q1)
+        for i, overhead in remaining:
+            if overhead > threshold:
+                flags[i] = FLAG_CAPTURE_NOISE
+
+    return flags
 
 
 def _pooled_origin_summary(origin_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -159,25 +205,16 @@ def _setup_matplotlib(output_dir: Path):
     return plt
 
 
+def _category_color_map(plt, categories) -> dict[str, Any]:
+    unique = sorted({category or "uncategorized" for category in categories})
+    cmap = plt.get_cmap("tab10" if len(unique) <= 10 else "tab20")
+    return {category: cmap(i % cmap.N) for i, category in enumerate(unique)}
+
+
 def _save_figure(plt, path: Path, dpi: int = 220) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(path, dpi=dpi, bbox_inches="tight", facecolor=plt.gcf().get_facecolor())
     plt.close()
-
-
-def _annotate_bars(ax, bars, values, formatter=_format_bytes, offset_ratio: float = 0.02):
-    ymax = max(values) if values else 1
-    for bar, value in zip(bars, values):
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + ymax * offset_ratio,
-            formatter(value),
-            ha="center",
-            va="bottom",
-            fontsize=9,
-            color="#37474F",
-            fontweight="500",
-        )
 
 
 def _annotate_log_bars(ax, bars, values, formatter=_format_bytes):
@@ -251,7 +288,8 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
     return True
 
 
-def _plot_web_traffic_comparison(path: Path, web_rows: list[dict[str, str]]) -> bool:
+def _plot_web_overhead_scatter(path: Path, web_rows: list[dict[str, str]]) -> bool:
+    """PCAP vs CDP bytes, one point per site — scales to any number of sites."""
     if not web_rows:
         return False
 
@@ -260,69 +298,203 @@ def _plot_web_traffic_comparison(path: Path, web_rows: list[dict[str, str]]) -> 
     except ImportError:
         return False
 
-    web_rows = _sort_web_rows(web_rows)
-
-    sites = [row.get("site_label") or row.get("category", "?") for row in web_rows]
-    pcap_values = [_float(row, "pcap_bytes") for row in web_rows]
+    categories = [row.get("category") or "uncategorized" for row in web_rows]
+    color_map = _category_color_map(plt, categories)
     cdp_values = [_float(row, "cdp_bytes") for row in web_rows]
+    pcap_values = [_float(row, "pcap_bytes") for row in web_rows]
 
-    x = range(len(sites))
-    width = 0.36
+    fig, ax = plt.subplots(figsize=(9, 7.2))
+    for category in sorted(set(categories)):
+        xs = [cdp for cdp, cat in zip(cdp_values, categories) if cat == category]
+        ys = [pcap for pcap, cat in zip(pcap_values, categories) if cat == category]
+        ax.scatter(
+            xs,
+            ys,
+            label=_category_label(category),
+            color=color_map[category],
+            s=45,
+            alpha=0.85,
+            edgecolor="white",
+            linewidth=0.6,
+        )
 
-    fig, ax = plt.subplots(figsize=(10, 5.5))
-    bars_pcap = ax.bar(
-        [i - width / 2 for i in x],
-        pcap_values,
-        width,
-        label="PCAP (network capture)",
-        color="#1565C0",
-        edgecolor="white",
-        linewidth=1.0,
-    )
-    bars_cdp = ax.bar(
-        [i + width / 2 for i in x],
-        cdp_values,
-        width,
-        label="CDP (browser payload)",
-        color="#00838F",
-        edgecolor="white",
-        linewidth=1.0,
-    )
+    positive_values = [value for value in cdp_values + pcap_values if value > 0]
+    if positive_values:
+        lo, hi = min(positive_values) * 0.7, max(positive_values) * 1.4
+        ax.plot([lo, hi], [lo, hi], linestyle="--", color="#B0BEC5", linewidth=1.2, label="No overhead (y = x)")
+        ax.set_xlim(lo, hi)
+        ax.set_ylim(lo, hi)
 
-    ax.set_title("Web traffic: network capture vs browser payload", pad=14)
-    ax.set_ylabel("Bytes transferred")
-    ax.set_xticks(list(x))
-    ax.set_xticklabels([site.capitalize() for site in sites])
-    ax.yaxis.set_major_formatter(
-        plt.FuncFormatter(lambda value, _pos: _format_bytes(value))
-    )
-    ax.grid(axis="y", linestyle="--", alpha=0.9)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("CDP bytes (browser payload)")
+    ax.set_ylabel("PCAP bytes (network capture)")
+    ax.set_title(f"Network overhead across {len(web_rows)} site visits", pad=14)
+    ax.grid(True, which="both", linestyle="--", alpha=0.5)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.legend(frameon=False, loc="upper right")
+    ax.legend(frameon=False, fontsize=8, loc="upper left", bbox_to_anchor=(1.02, 1.0))
 
-    for bars in (bars_pcap, bars_cdp):
-        for bar in bars:
-            height = bar.get_height()
-            if height <= 0:
-                continue
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                height * 1.01,
-                _format_bytes(height),
-                ha="center",
-                va="bottom",
-                fontsize=8,
-                color="#37474F",
-            )
+    fig.subplots_adjust(right=0.78)
+    _save_figure(plt, path)
+    return True
 
-    fig.text(
-        0.01,
-        0.01,
-        "Sample run · PCAP includes TLS/QUIC and protocol overhead not visible in CDP",
-        fontsize=8,
-        color="#78909C",
+
+def _plot_web_bytes_by_category(path: Path, web_rows: list[dict[str, str]]) -> bool:
+    """PCAP vs CDP byte distribution per category — box plots stay readable at any site count."""
+    if not web_rows:
+        return False
+
+    try:
+        plt = _setup_matplotlib(path.parent)
+    except ImportError:
+        return False
+
+    grouped: dict[str, dict[str, list[float]]] = defaultdict(lambda: {"pcap": [], "cdp": []})
+    for row in web_rows:
+        category = row.get("category") or "uncategorized"
+        grouped[category]["pcap"].append(_float(row, "pcap_bytes"))
+        grouped[category]["cdp"].append(_float(row, "cdp_bytes"))
+
+    categories = sorted(grouped.keys())
+    positions_pcap = [i * 2.2 for i in range(len(categories))]
+    positions_cdp = [pos + 0.9 for pos in positions_pcap]
+
+    fig, ax = plt.subplots(figsize=(max(9, len(categories) * 1.15), 6.2))
+    box_pcap = ax.boxplot(
+        [grouped[c]["pcap"] for c in categories],
+        positions=positions_pcap,
+        widths=0.75,
+        patch_artist=True,
+        showfliers=False,
     )
+    box_cdp = ax.boxplot(
+        [grouped[c]["cdp"] for c in categories],
+        positions=positions_cdp,
+        widths=0.75,
+        patch_artist=True,
+        showfliers=False,
+    )
+    for box in box_pcap["boxes"]:
+        box.set_facecolor("#1565C0")
+        box.set_alpha(0.75)
+    for box in box_cdp["boxes"]:
+        box.set_facecolor("#00838F")
+        box.set_alpha(0.75)
+    for element in ("whiskers", "caps", "medians"):
+        for line in box_pcap[element] + box_cdp[element]:
+            line.set_color("#37474F")
+
+    ax.set_yscale("log")
+    ax.set_xticks([(a + b) / 2 for a, b in zip(positions_pcap, positions_cdp)])
+    ax.set_xticklabels([_category_label(c) for c in categories], rotation=30, ha="right")
+    ax.set_xlim(min(positions_pcap) - 1.1, max(positions_cdp) + 1.1)
+    ax.set_ylabel("Bytes (log scale)")
+    ax.set_title("Web traffic by category: network capture vs browser payload", pad=14)
+    ax.grid(axis="y", linestyle="--", alpha=0.7)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.legend(
+        handles=[
+            plt.Rectangle((0, 0), 1, 1, facecolor="#1565C0", alpha=0.75, label="PCAP (network capture)"),
+            plt.Rectangle((0, 0), 1, 1, facecolor="#00838F", alpha=0.75, label="CDP (browser payload)"),
+        ],
+        frameon=False,
+        loc="upper right",
+    )
+    _save_figure(plt, path)
+    return True
+
+
+def _plot_overhead_by_category(path: Path, web_rows: list[dict[str, str]]) -> bool:
+    """Overhead % distribution per category — readable regardless of how many sites feed each category."""
+    if not web_rows:
+        return False
+
+    try:
+        plt = _setup_matplotlib(path.parent)
+    except ImportError:
+        return False
+
+    grouped: dict[str, list[float]] = defaultdict(list)
+    for row in web_rows:
+        category = row.get("category") or "uncategorized"
+        grouped[category].append(_float(row, "overhead_pct"))
+
+    categories = sorted(grouped.keys())
+    color_map = _category_color_map(plt, categories)
+
+    fig, ax = plt.subplots(figsize=(max(9, len(categories) * 0.95), 5.8))
+    box = ax.boxplot([grouped[c] for c in categories], patch_artist=True, widths=0.6, showfliers=True)
+    for patch, category in zip(box["boxes"], categories):
+        patch.set_facecolor(color_map[category])
+        patch.set_alpha(0.75)
+    for element in ("whiskers", "caps", "medians"):
+        for line in box[element]:
+            line.set_color("#37474F")
+
+    ax.axhline(0, color="#C62828", linestyle="--", linewidth=1, label="No overhead (0%)")
+    ax.set_xticks(range(1, len(categories) + 1))
+    ax.set_xticklabels([_category_label(c) for c in categories], rotation=30, ha="right")
+    ax.set_ylabel("PCAP vs CDP overhead (%)")
+    ax.set_title("Network overhead by category", pad=14)
+    ax.legend(frameon=False, loc="upper right")
+    ax.grid(axis="y", linestyle="--", alpha=0.7)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    _save_figure(plt, path)
+    return True
+
+
+def _plot_cfp_by_category(path: Path, web_category_summary: list[dict[str, Any]]) -> bool:
+    if not web_category_summary:
+        return False
+
+    try:
+        plt = _setup_matplotlib(path.parent)
+    except ImportError:
+        return False
+
+    rows = sorted(web_category_summary, key=lambda row: row["avg_co2_kg"], reverse=True)
+    categories = [row["category"] for row in rows]
+    values = [row["avg_co2_kg"] for row in rows]
+    lower_err = [max(row["avg_co2_kg"] - row["min_co2_kg"], 0) for row in rows]
+    upper_err = [max(row["max_co2_kg"] - row["avg_co2_kg"], 0) for row in rows]
+    color_map = _category_color_map(plt, categories)
+    colors = [color_map[c] for c in categories]
+
+    fig, ax = plt.subplots(figsize=(max(9, len(categories) * 0.95), 6.2))
+    bars = ax.bar(
+        range(len(categories)),
+        values,
+        color=colors,
+        edgecolor="white",
+        width=0.62,
+        yerr=[lower_err, upper_err],
+        capsize=4,
+        error_kw={"ecolor": "#546E7A", "linewidth": 1},
+    )
+    ax.set_xticks(range(len(categories)))
+    ax.set_xticklabels([_category_label(c) for c in categories], rotation=30, ha="right")
+    ax.set_ylabel("Avg CO₂ per page load (kg CO₂e)")
+    ax.set_title("Estimated carbon footprint by site category", pad=14)
+    ax.grid(axis="y", linestyle="--", alpha=0.7)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    ymax = max(v + err for v, err in zip(values, upper_err)) or 1
+    for bar, value in zip(bars, values):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + ymax * 0.03,
+            f"{value:.2e}",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+            color="#37474F",
+        )
+
+    fig.subplots_adjust(bottom=0.24)
     _save_figure(plt, path)
     return True
 
@@ -430,12 +602,13 @@ def _plot_run_dashboard(
     except ImportError:
         return False
 
-    web_rows = _sort_web_rows(web_rows)
     dns_base = next((row["avg_bytes"] for row in dns_summary if row["protocol"] == "dns"), None)
+    categories = [row.get("category") or "uncategorized" for row in web_rows]
+    color_map = _category_color_map(plt, categories)
 
-    fig, axes = plt.subplots(2, 2, figsize=(12.5, 9))
+    fig, axes = plt.subplots(2, 2, figsize=(13, 10))
     fig.suptitle(
-        f"Experiment summary — {run_id}",
+        f"Experiment summary — {run_id} ({len(web_rows)} site visits)",
         fontsize=15,
         fontweight="600",
         y=0.98,
@@ -467,58 +640,53 @@ def _plot_run_dashboard(
             bbox={"boxstyle": "round,pad=0.3", "facecolor": "#ECEFF1", "edgecolor": "none"},
         )
 
-    # Web PCAP vs CDP — same site order as summary.md
+    # PCAP vs CDP overhead — one point per site, colored by category
     ax = axes[0, 1]
-    sites = [row.get("site_label", "?").capitalize() for row in web_rows]
-    pcap_values = [_float(row, "pcap_bytes") for row in web_rows]
     cdp_values = [_float(row, "cdp_bytes") for row in web_rows]
-    x = range(len(sites))
-    width = 0.36
-    ax.bar([i - width / 2 for i in x], pcap_values, width, label="PCAP", color="#1565C0", edgecolor="white")
-    ax.bar([i + width / 2 for i in x], cdp_values, width, label="CDP", color="#00838F", edgecolor="white")
-    ax.set_xticks(list(x))
-    ax.set_xticklabels(sites, rotation=15, ha="right")
-    ax.set_title("Web traffic by site")
-    ax.legend(frameon=False, fontsize=8, loc="upper right")
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda value, _pos: _format_bytes(value)))
-    ax.grid(axis="y", linestyle="--", alpha=0.8)
+    pcap_values = [_float(row, "pcap_bytes") for row in web_rows]
+    point_colors = [color_map[category] for category in categories]
+    ax.scatter(cdp_values, pcap_values, color=point_colors, s=28, alpha=0.8, edgecolor="white", linewidth=0.4)
+    positive_values = [value for value in cdp_values + pcap_values if value > 0]
+    if positive_values:
+        lo, hi = min(positive_values) * 0.7, max(positive_values) * 1.4
+        ax.plot([lo, hi], [lo, hi], linestyle="--", color="#B0BEC5", linewidth=1.1)
+        ax.set_xlim(lo, hi)
+        ax.set_ylim(lo, hi)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("CDP bytes")
+    ax.set_ylabel("PCAP bytes")
+    ax.set_title("Network overhead per site (colored by category)")
+    ax.grid(True, which="both", linestyle="--", alpha=0.5)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    # PCAP/CDP ratio — exact values from summary.md
+    # Overhead % by category
     ax = axes[1, 0]
-    ratios = []
-    ratio_labels = []
+    grouped_overhead: dict[str, list[float]] = defaultdict(list)
     for row in web_rows:
-        cdp = _float(row, "cdp_bytes")
-        pcap = _float(row, "pcap_bytes")
-        ratio = (pcap / cdp) if cdp > 0 else 0
-        ratios.append(ratio)
-        ratio_labels.append(f"{ratio:.2f}×")
-
-    bars = ax.bar(range(len(sites)), ratios, color=CATEGORY_PALETTE[: len(sites)], edgecolor="white", width=0.62)
-    ax.axhline(1.0, color="#C62828", linestyle="--", linewidth=1, label="1× (no overhead)")
-    ax.set_title("PCAP / CDP ratio")
-    ax.set_ylabel("Multiplier")
-    ax.set_xticks(range(len(sites)))
-    ax.set_xticklabels(sites, rotation=15, ha="right")
-    ax.legend(frameon=False, fontsize=8)
+        grouped_overhead[row.get("category") or "uncategorized"].append(_float(row, "overhead_pct"))
+    sorted_categories = sorted(grouped_overhead.keys())
+    box = ax.boxplot(
+        [grouped_overhead[c] for c in sorted_categories],
+        patch_artist=True,
+        widths=0.6,
+        showfliers=False,
+    )
+    for patch, category in zip(box["boxes"], sorted_categories):
+        patch.set_facecolor(color_map[category])
+        patch.set_alpha(0.75)
+    for element in ("whiskers", "caps", "medians"):
+        for line in box[element]:
+            line.set_color("#37474F")
+    ax.axhline(0, color="#C62828", linestyle="--", linewidth=1)
+    ax.set_xticks(range(1, len(sorted_categories) + 1))
+    ax.set_xticklabels([_category_label(c) for c in sorted_categories], rotation=30, ha="right")
+    ax.set_title("Overhead % by category")
+    ax.set_ylabel("Overhead (%)")
     ax.grid(axis="y", linestyle="--", alpha=0.8)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ymax = max(ratios + [1.0])
-    for bar, label in zip(bars, ratio_labels):
-        height = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            height + ymax * 0.03,
-            label,
-            ha="center",
-            va="bottom",
-            fontsize=8,
-            color="#37474F",
-            fontweight="500",
-        )
 
     # Origin — pooled CDP bytes (same totals as summary.md)
     ax = axes[1, 1]
@@ -592,7 +760,9 @@ def _profile_resource_summary(profiles: list[dict[str, Any]]) -> list[dict[str, 
 def _markdown_report(
     run_dir: Path,
     dns_summary: list[dict[str, Any]],
-    web_summary: list[dict[str, Any]],
+    clean_web_rows: list[dict[str, str]],
+    flagged_web_rows: list[dict[str, str]],
+    web_category_summary: list[dict[str, Any]],
     origin_summary: list[dict[str, Any]],
     generated_plots: list[str],
 ) -> str:
@@ -622,21 +792,84 @@ def _markdown_report(
     else:
         lines.append("No DNS results found for this run.")
 
-    lines.extend(["", "## Web traffic by site", ""])
-    if web_summary:
-        lines.append("| Site | Category | PCAP bytes | CDP bytes | PCAP/CDP ratio |")
-        lines.append("| --- | --- | ---: | ---: | ---: |")
-        for row in web_summary:
-            cdp = row.get("avg_cdp_bytes", 0)
-            pcap = row.get("avg_pcap_bytes", 0)
-            ratio = (pcap / cdp) if cdp else 0
-            label = row.get("site_label") or row.get("category", "?")
+    lines.extend(
+        [
+            "",
+            "## Web traffic by category",
+            "",
+            f"Excludes {len(flagged_web_rows)} flagged sites (see "
+            "\"Data quality\" section below). Median overhead is shown "
+            "instead of the mean because a handful of extreme values per "
+            "category can otherwise dominate an average computed from only "
+            "~10 sites — see `web_category_summary.csv` for the full "
+            "avg/median/min/max breakdown.",
+            "",
+        ]
+    )
+    if web_category_summary:
+        lines.append("| Category | Sites | Avg PCAP bytes | Avg CDP bytes | Median overhead % | Avg CO₂ (kg) |")
+        lines.append("| --- | ---: | ---: | ---: | ---: | ---: |")
+        for row in web_category_summary:
             lines.append(
-                f"| {label} | {row.get('category', '-')} | "
-                f"{_format_bytes(pcap)} | {_format_bytes(cdp)} | {ratio:.2f}× |"
+                f"| {_category_label(row['category'])} | {row['samples']} | "
+                f"{_format_bytes(row['avg_pcap_bytes'])} | {_format_bytes(row['avg_cdp_bytes'])} | "
+                f"{row['median_overhead_pct']:.1f}% | {row['avg_co2_kg']:.6e} |"
             )
     else:
         lines.append("No web results found for this run.")
+
+    if clean_web_rows:
+        lines.extend(
+            ["", "## Highest overhead sites (top {})".format(min(TOP_N_OUTLIERS, len(clean_web_rows))), ""]
+        )
+        lines.append("| Site | Category | Overhead % | PCAP bytes | CDP bytes |")
+        lines.append("| --- | --- | ---: | ---: | ---: |")
+        for row in _top_rows(clean_web_rows, "overhead_pct"):
+            lines.append(
+                f"| {row.get('site_label', '?')} | {_category_label(row.get('category', ''))} | "
+                f"{_float(row, 'overhead_pct'):.1f}% | {_format_bytes(_float(row, 'pcap_bytes'))} | "
+                f"{_format_bytes(_float(row, 'cdp_bytes'))} |"
+            )
+
+        lines.extend(
+            ["", "## Highest carbon footprint sites (top {})".format(min(TOP_N_OUTLIERS, len(clean_web_rows))), ""]
+        )
+        lines.append("| Site | Category | CO₂ (kg) | PCAP bytes |")
+        lines.append("| --- | --- | ---: | ---: |")
+        for row in _top_rows(clean_web_rows, "co2_kg"):
+            lines.append(
+                f"| {row.get('site_label', '?')} | {_category_label(row.get('category', ''))} | "
+                f"{_float(row, 'co2_kg'):.6e} | {_format_bytes(_float(row, 'pcap_bytes'))} |"
+            )
+
+        lines.extend(["", "Full per-site detail (including flagged sites): `web_site_summary.csv`."])
+
+    lines.extend(["", "## Data quality — sites excluded from category stats and plots", ""])
+    if flagged_web_rows:
+        bot_blocked = [r for r in flagged_web_rows if r["data_quality_flag"] == FLAG_BOT_BLOCKED]
+        noise = [r for r in flagged_web_rows if r["data_quality_flag"] == FLAG_CAPTURE_NOISE]
+        total = len(clean_web_rows) + len(flagged_web_rows)
+        lines.append(
+            f"{len(flagged_web_rows)} of {total} site visits ({len(flagged_web_rows) / total * 100:.0f}%) "
+            f"were excluded from the tables and plots above: {len(bot_blocked)} likely bot-blocked or "
+            f"failed to load (CDP payload under {_format_bytes(MIN_PLAUSIBLE_CDP_BYTES)}), and "
+            f"{len(noise)} likely affected by unrelated background network traffic during capture "
+            "(overhead statistically extreme vs. the rest of the run). See ISSUES_LOG.md, Issues 5/7/10."
+        )
+        lines.append("")
+        lines.append("| Site | Category | Reason | Overhead % | PCAP bytes | CDP bytes |")
+        lines.append("| --- | --- | --- | ---: | ---: | ---: |")
+        for row in sorted(flagged_web_rows, key=lambda r: r["data_quality_flag"]):
+            lines.append(
+                f"| {row.get('site_label', '?')} | {_category_label(row.get('category', ''))} | "
+                f"{FLAG_LABELS.get(row['data_quality_flag'], row['data_quality_flag'])} | "
+                f"{_float(row, 'overhead_pct'):.1f}% | {_format_bytes(_float(row, 'pcap_bytes'))} | "
+                f"{_format_bytes(_float(row, 'cdp_bytes'))} |"
+            )
+        lines.extend(["", "Full detail: `web_flagged_sites.csv`. Consider re-running these sites once the "
+                      "underlying cause (bot detection / background network noise) is addressed."])
+    else:
+        lines.append("No sites were flagged for this run.")
 
     lines.extend(["", "## Resource origin profile", ""])
     if origin_summary:
@@ -668,25 +901,39 @@ def analyze_run(run_dir: str | Path):
     profiles = _load_profiles(run_dir)
 
     dns_summary = _summarize(dns_rows, "protocol", ["bytes", "energy_kwh", "co2_kg"])
-    web_summary = _summarize(
+
+    flag_by_index = _flag_web_rows(web_rows)
+    for i, row in enumerate(web_rows):
+        row["data_quality_flag"] = flag_by_index.get(i, "")
+    clean_web_rows = [row for row in web_rows if not row["data_quality_flag"]]
+    flagged_web_rows = [row for row in web_rows if row["data_quality_flag"]]
+    flagged_site_labels = {row.get("site_label") for row in flagged_web_rows}
+
+    web_site_summary = _summarize(
         web_rows,
         "site_label",
         ["pcap_bytes", "cdp_bytes", "overhead_bytes", "overhead_pct", "co2_kg"],
     )
-    for row in web_summary:
+    for row in web_site_summary:
         matching = next((w for w in web_rows if w.get("site_label") == row["site_label"]), {})
         row["category"] = matching.get("category", "")
+        row["data_quality_flag"] = matching.get("data_quality_flag", "")
+    web_site_summary = sorted(web_site_summary, key=lambda row: (row.get("site_label") or "").lower())
 
-    origin_rows = _profile_resource_summary(profiles)
-    origin_summary = _pooled_origin_summary(origin_rows)
-
-    web_summary = sorted(
-        web_summary,
-        key=lambda row: (row.get("site_label") or "").lower(),
+    web_category_summary = _summarize(
+        clean_web_rows,
+        "category",
+        ["pcap_bytes", "cdp_bytes", "overhead_bytes", "overhead_pct", "co2_kg"],
     )
 
+    origin_rows = _profile_resource_summary(profiles)
+    origin_rows = [row for row in origin_rows if row.get("site_label") not in flagged_site_labels]
+    origin_summary = _pooled_origin_summary(origin_rows)
+
     _write_csv(analysis_dir / "dns_protocol_summary.csv", dns_summary)
-    _write_csv(analysis_dir / "web_category_summary.csv", web_summary)
+    _write_csv(analysis_dir / "web_site_summary.csv", web_site_summary)
+    _write_csv(analysis_dir / "web_category_summary.csv", web_category_summary)
+    _write_csv(analysis_dir / "web_flagged_sites.csv", flagged_web_rows)
     _write_csv(analysis_dir / "web_origin_summary.csv", origin_summary)
     _write_csv(analysis_dir / "web_origin_resources.csv", origin_rows)
 
@@ -700,9 +947,21 @@ def analyze_run(run_dir: str | Path):
             ),
         ),
         (
-            "fig_web_traffic_comparison.png",
-            lambda: _plot_web_traffic_comparison(
-                analysis_dir / "fig_web_traffic_comparison.png", web_rows
+            "fig_web_overhead_scatter.png",
+            lambda: _plot_web_overhead_scatter(
+                analysis_dir / "fig_web_overhead_scatter.png", clean_web_rows
+            ),
+        ),
+        (
+            "fig_web_bytes_by_category.png",
+            lambda: _plot_web_bytes_by_category(
+                analysis_dir / "fig_web_bytes_by_category.png", clean_web_rows
+            ),
+        ),
+        (
+            "fig_web_overhead_by_category.png",
+            lambda: _plot_overhead_by_category(
+                analysis_dir / "fig_web_overhead_by_category.png", clean_web_rows
             ),
         ),
         (
@@ -712,12 +971,18 @@ def analyze_run(run_dir: str | Path):
             ),
         ),
         (
+            "fig_cfp_by_category.png",
+            lambda: _plot_cfp_by_category(
+                analysis_dir / "fig_cfp_by_category.png", web_category_summary
+            ),
+        ),
+        (
             "fig_dashboard.png",
             lambda: _plot_run_dashboard(
                 analysis_dir / "fig_dashboard.png",
                 run_dir.name,
                 dns_summary,
-                web_rows,
+                clean_web_rows,
                 origin_summary,
             ),
         ),
@@ -730,7 +995,9 @@ def analyze_run(run_dir: str | Path):
     report = _markdown_report(
         run_dir,
         dns_summary=dns_summary,
-        web_summary=web_summary,
+        clean_web_rows=clean_web_rows,
+        flagged_web_rows=flagged_web_rows,
+        web_category_summary=web_category_summary,
         origin_summary=origin_summary,
         generated_plots=generated_plots,
     )
@@ -743,6 +1010,7 @@ def analyze_run(run_dir: str | Path):
             "run_dir": str(run_dir),
             "dns_rows": len(dns_rows),
             "web_rows": len(web_rows),
+            "web_rows_flagged": len(flagged_web_rows),
             "profiles": len(profiles),
             "generated_plots": generated_plots,
         },

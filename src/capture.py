@@ -69,5 +69,5 @@ def start_capture(output_file, filter_rule=None, interface=None):
 
 
 def stop_capture(process):
-    process.terminate() # aqui ya se genera un archivo pcap que contiene todos los paquetes capturados 
+    process.terminate()  # the pcap file with all captured packets is already written at this point
     process.communicate()

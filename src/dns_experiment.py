@@ -41,7 +41,7 @@ def run_dns_experiment(
     doq_resolver: str = DEFAULT_DOQ_RESOLVER,
 ):
     if protocol not in {"dns", "doh", "doq"}:
-        raise ValueError("protocol debe ser uno de: dns, doh, doq")
+        raise ValueError("protocol must be one of: dns, doh, doq")
 
     started_at = int(time.time())
     output_path = ensure_output_dir(output_dir)
@@ -75,7 +75,7 @@ def run_dns_experiment(
 
     failed_queries = 0
     for _ in range(repetitions):
-        # subdominios aleatorios para evitar que el resolver cachee la respuesta
+        # random subdomains so the resolver cannot cache the response
         random_domain = f"{random.randint(1, 100000)}.{domain}"
 
         if protocol == "dns":
@@ -100,8 +100,8 @@ def run_dns_experiment(
 
     if failed_queries:
         print(
-            f"Aviso: {failed_queries}/{repetitions} consultas {protocol} fallaron. "
-            "Los bytes capturados corresponden a intentos fallidos de conexión."
+            f"Warning: {failed_queries}/{repetitions} {protocol} queries failed. "
+            "The captured bytes correspond to failed connection attempts."
         )
 
     cfp_res = bytes_to_cfp(dns_bytes)

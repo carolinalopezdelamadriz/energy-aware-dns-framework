@@ -33,7 +33,7 @@ def run_web_experiment(
         open_website(url, headless=headless, fresh_profile=fresh_profile)
         profile = None
 
-    time.sleep(5)
+    time.sleep(8)
     stop_capture(capture)
 
     total_bytes = analyze_total_bytes(pcap_path)
@@ -50,14 +50,26 @@ def run_web_experiment(
         profile["site_label"] = site_label
         profile["category"] = category
 
-        overhead = total_bytes - profile["total_bytes"]
+        # network_bytes excludes resources served from disk cache or a
+        # Service Worker (they never cross the network interface), so it is
+        # the correct figure to compare against the PCAP
+        # total_bytes is
+        # still stored in the JSON as the "payload perceived by the browser"
+        comparison_bytes = profile.get("network_bytes", profile["total_bytes"])
+
+        overhead = total_bytes - comparison_bytes
         overhead_pct = (
-            (overhead / profile["total_bytes"]) * 100
-            if profile["total_bytes"] > 0
+            (overhead / comparison_bytes) * 100
+            if comparison_bytes > 0
             else 0
         )
 
-        print(f"Overhead PCAP vs CDP: {overhead} bytes ({round(overhead_pct, 2)}%)")
+        print(
+            f"Overhead PCAP vs CDP (network only, cache excluded): "
+            f"{overhead} bytes ({round(overhead_pct, 2)}%)"
+        )
+        if profile.get("cached_bytes", 0) > 0:
+            print(f"Bytes served from cache/Service Worker (excluded): {profile['cached_bytes']}")
 
         profile_path = os.path.join(output_path, f"web_profile_{started_at}.json")
         write_json(profile_path, profile)
@@ -73,6 +85,8 @@ def run_web_experiment(
         "profile_file": str(profile_path) if profile_path else "",
         "pcap_bytes": cfp_res.bytes,
         "cdp_bytes": profile["total_bytes"] if profile else "",
+        "cdp_network_bytes": profile.get("network_bytes", "") if profile else "",
+        "cdp_cached_bytes": profile.get("cached_bytes", "") if profile else "",
         "overhead_bytes": overhead if overhead is not None else "",
         "overhead_pct": overhead_pct if overhead_pct is not None else "",
         "energy_kwh": cfp_res.energy_kwh,

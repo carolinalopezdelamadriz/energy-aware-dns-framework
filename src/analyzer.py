@@ -1,66 +1,50 @@
 import subprocess
 import re
 
+# tcpdump's default per-protocol summary line only prints a "length N" (or
+# DNS-style "(N)") field for protocols it can fully decode. Encrypted QUIC
+# application data shows up as "quic, protected" with no length at all, so
+# relying on that field silently drops every QUIC/HTTP-3 packet from the
+# byte count. The Ethernet frame length printed after "ethertype" (via -e)
+# is always present regardless of what's inside, so it's used for every
+# packet instead.
+FRAME_LENGTH_RE = re.compile(r"ethertype \S+ \([^)]*\), length (\d+):")
 
-def analyze_total_bytes(file_path):
-    cmd = ["tcpdump", "-r", file_path, "-n"]
+
+def _sum_frame_bytes(cmd: list[str]) -> int:
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     total = 0
     for line in result.stdout.split("\n"):
-        m = re.search(r"length (\d+)", line)
-        if m:
-            total += int(m.group(1))
+        match = FRAME_LENGTH_RE.search(line)
+        if match:
+            total += int(match.group(1))
 
+    return total
+
+
+def analyze_total_bytes(file_path):
+    total = _sum_frame_bytes(["tcpdump", "-r", file_path, "-n", "-e"])
     print("Total bytes captured:", total)
     return total
 
 
 def analyze_dns_bytes(file_path):
-    # puerto 53 UDP
-    cmd = ["tcpdump", "-nn", "-r", file_path, "udp port 53"]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    total = 0
-    for line in result.stdout.split("\n"):
-        m = re.search(r"length (\d+)", line)
-        if m:
-            total += int(m.group(1))
-        else:
-            # formato alternativo de tcpdump para UDP: (N)
-            m2 = re.search(r"\((\d+)\)$", line)
-            if m2:
-                total += int(m2.group(1))
-
+    # UDP port 53
+    total = _sum_frame_bytes(["tcpdump", "-nn", "-e", "-r", file_path, "udp port 53"])
     print("DNS bytes captured:", total)
     return total
 
 
 def analyze_https_bytes(file_path):
-    # tráfico TLS/HTTPS en puerto 443
-    cmd = ["tcpdump", "-nn", "-r", file_path, "port 443"]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    total = 0
-    for line in result.stdout.split("\n"):
-        m = re.search(r"length (\d+)", line)
-        if m:
-            total += int(m.group(1))
-
+    # TLS/HTTPS traffic on port 443
+    total = _sum_frame_bytes(["tcpdump", "-nn", "-e", "-r", file_path, "port 443"])
     print("HTTPS bytes captured:", total)
     return total
 
 
 def analyze_quic_bytes(file_path):
-    # tráfico DoQ sobre UDP/853
-    cmd = ["tcpdump", "-nn", "-r", file_path, "udp port 853"]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    total = 0
-    for line in result.stdout.split("\n"):
-        m = re.search(r"length (\d+)", line)
-        if m:
-            total += int(m.group(1))
-
+    # DoQ traffic over UDP/853
+    total = _sum_frame_bytes(["tcpdump", "-nn", "-e", "-r", file_path, "udp port 853"])
     print("QUIC/DoQ bytes captured:", total)
     return total
