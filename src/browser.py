@@ -1,7 +1,10 @@
 import atexit
 import json
+import re
 import shutil
+import subprocess
 import tempfile
+import threading
 import time
 from collections import defaultdict
 from urllib.parse import urlparse
@@ -46,13 +49,114 @@ def _build_chrome_driver(headless: bool = False, fresh_profile: bool = False) ->
         atexit.register(shutil.rmtree, tmpdir, ignore_errors=True)
         options.add_argument(f"--user-data-dir={tmpdir}")
 
+    # Reduce (not eliminate) automation fingerprints that some sites use to
+    # serve a bot-challenge page instead of the real content 
+    
+    # sites relying on TLS/behavioral fingerprinting
+    # will still detect a scripted browser regardless of these flags
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
+
     perf_log_prefs = {"enableNetwork": True, "enablePage": False}
     options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
     options.set_capability("goog:perfLoggingPrefs", perf_log_prefs)
 
     driver = webdriver.Chrome(options=options)
     driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
+    try:
+        driver.execute_cdp_cmd(
+            "Page.addScriptToEvaluateOnNewDocument",
+            {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"},
+        )
+    except WebDriverException:
+        pass
     return driver
+
+
+def _list_descendant_pids(root_pid: int) -> set[int]:
+    try:
+        result = subprocess.run(
+            ["ps", "-ax", "-o", "pid,ppid"], capture_output=True, text=True, timeout=5
+        )
+    except Exception:
+        return {root_pid}
+
+    children_by_parent: dict[int, list[int]] = defaultdict(list)
+    for line in result.stdout.splitlines()[1:]:
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        try:
+            pid, ppid = int(parts[0]), int(parts[1])
+        except ValueError:
+            continue
+        children_by_parent[ppid].append(pid)
+
+    descendants = {root_pid}
+    frontier = [root_pid]
+    while frontier:
+        pid = frontier.pop()
+        for child in children_by_parent.get(pid, []):
+            if child not in descendants:
+                descendants.add(child)
+                frontier.append(child)
+    return descendants
+
+
+def _list_local_ports(pids: set[int]) -> set[int]:
+    if not pids:
+        return set()
+    try:
+        result = subprocess.run(
+            ["lsof", "-i", "-a", "-P", "-n", "-p", ",".join(str(pid) for pid in pids)],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except Exception:
+        return set()
+
+    ports = set()
+    for line in result.stdout.splitlines()[1:]:
+        match = re.search(r":(\d+)->", line)
+        if match:
+            ports.add(int(match.group(1)))
+    return ports
+
+
+class _ChromePortWatcher:
+    """Polls the Chrome process tree's open sockets so the PCAP can later be
+    scoped to only those local ports, instead of every packet on the
+    interface (see ISSUES_LOG.md Issue 7: unrelated background traffic was
+    contaminating web captures). Best-effort: any failure just means no
+    ports are collected and the caller falls back to an unscoped capture.
+    """
+
+    def __init__(self, root_pid: int, interval: float = 0.75):
+        self._root_pid = root_pid
+        self._interval = interval
+        self._ports: set[int] = set()
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def start(self) -> "_ChromePortWatcher":
+        self._thread.start()
+        return self
+
+    def _run(self):
+        while not self._stop_event.is_set():
+            try:
+                pids = _list_descendant_pids(self._root_pid)
+                self._ports.update(_list_local_ports(pids))
+            except Exception:
+                pass
+            self._stop_event.wait(self._interval)
+
+    def stop(self) -> list[int]:
+        self._stop_event.set()
+        self._thread.join(timeout=2)
+        return sorted(self._ports)
 
 
 def open_website(url: str, duration: int = 10, headless: bool = False, fresh_profile: bool = False):
@@ -99,10 +203,21 @@ def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fre
             "total_bytes": total,
             "network_bytes": total excluding cache/service-worker-served bytes,
             "cached_bytes": bytes served from disk cache or service worker,
-            "resources": [{"url", "type", "origin_class", "encodedDataLength", "from_cache"}, ...]
+            "resources": [{"url", "type", "origin_class", "encodedDataLength", "from_cache"}, ...],
+            "chrome_local_ports": local ports used by Chrome's process tree during
+                the visit, for scoping the PCAP analysis to this browser's own
+                traffic (best-effort; empty if PID/port lookup failed)
         }
     """
     driver = _build_chrome_driver(headless=headless, fresh_profile=fresh_profile)
+
+    port_watcher = None
+    try:
+        root_pid = driver.service.process.pid
+        port_watcher = _ChromePortWatcher(root_pid).start()
+    except Exception:
+        port_watcher = None
+
     try:
         try:
             driver.get(url)
@@ -200,6 +315,8 @@ def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fre
                 "from_cache": from_cache,
             })
 
+        chrome_ports = port_watcher.stop() if port_watcher else []
+
         return {
             "url": url,
             "by_type": dict(by_type),
@@ -208,7 +325,10 @@ def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fre
             "network_bytes": network_bytes,
             "cached_bytes": cached_bytes,
             "resources": resources,
+            "chrome_local_ports": chrome_ports,
         }
 
     finally:
+        if port_watcher:
+            port_watcher.stop()
         driver.quit()

@@ -71,23 +71,29 @@ def run_dns_experiment(
         capture_filter = f"udp port 853 and host {resolver_host}"
 
     capture = start_capture(pcap_path, filter_rule=capture_filter, interface=interface)
-    time.sleep(1)
-
     failed_queries = 0
-    for _ in range(repetitions):
-        # random subdomains so the resolver cannot cache the response
-        random_domain = f"{random.randint(1, 100000)}.{domain}"
+    try:
+        time.sleep(1)
 
-        if protocol == "dns":
-            resolve_classic(random_domain)
-        elif protocol == "doh":
-            resolve_doh(random_domain)
-        elif protocol == "doq":
-            if not resolve_doq(random_domain, resolver_name=doq_resolver):
-                failed_queries += 1
+        for _ in range(repetitions):
+            # random subdomains so the resolver cannot cache the response
+            random_domain = f"{random.randint(1, 100000)}.{domain}"
 
-    time.sleep(1.5)
-    stop_capture(capture)
+            if protocol == "dns":
+                resolve_classic(random_domain)
+            elif protocol == "doh":
+                resolve_doh(random_domain)
+            elif protocol == "doq":
+                if not resolve_doq(random_domain, resolver_name=doq_resolver):
+                    failed_queries += 1
+
+        time.sleep(1.5)
+    finally:
+        # Always stop tcpdump, even if a query raised - otherwise the
+        # process is orphaned and keeps capturing indefinitely (found
+        # running for 33+ hours after a batch failure, see ISSUES_LOG.md
+        # Issue 11)
+        stop_capture(capture)
 
     if protocol == "dns":
         dns_bytes = analyze_dns_bytes(pcap_path)

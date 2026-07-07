@@ -212,6 +212,9 @@ __marimo__/
 # Material local (correos, borradores, apuntes) — no subir al repo
 docs/
 
+# Configuración local de herramientas de desarrollo — no subir al repo
+.claude/
+
 # Capturas brutas de experimentos: se quedan en local
 *.pcap
 

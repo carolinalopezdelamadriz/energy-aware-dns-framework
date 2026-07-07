@@ -50,20 +50,9 @@ PLOT_STYLE = {
 
 TOP_N_OUTLIERS = 10
 
-# Below this many CDP bytes, a page load is treated as failed/blocked rather
-# than a genuinely tiny site. Chosen from the observed 100-site batch: 9
-# sites clustered under 2.8 KB (confirmed via curl to be anti-bot challenge
-# pages served instead of the real site to headless Chrome), then the next
-# lowest legitimate site was at 11.4 KB — a clean, well-separated gap.
 MIN_PLAUSIBLE_CDP_BYTES = 5000
 
-# Overhead values beyond Q3 + this many IQRs (computed on the sites that
-# pass the CDP-floor check above) are flagged as likely capture noise —
-# background traffic unrelated to the visited site polluting the PCAP (see
-# ISSUES_LOG.md Issue 7). 3x IQR is the conventional "extreme outlier"
-# threshold (vs. 1.5x for a regular outlier), used here deliberately
-# conservatively to avoid flagging sites that are just genuinely
-# third-party/tracker heavy.
+
 OUTLIER_IQR_MULTIPLIER = 3
 
 FLAG_BOT_BLOCKED = "likely_bot_blocked_or_failed_load"
@@ -854,7 +843,8 @@ def _markdown_report(
             f"were excluded from the tables and plots above: {len(bot_blocked)} likely bot-blocked or "
             f"failed to load (CDP payload under {_format_bytes(MIN_PLAUSIBLE_CDP_BYTES)}), and "
             f"{len(noise)} likely affected by unrelated background network traffic during capture "
-            "(overhead statistically extreme vs. the rest of the run). See ISSUES_LOG.md, Issues 5/7/10."
+            "(overhead statistically extreme vs. the rest of the run). "
+            "See docs/apuntes_personales/ISSUES_LOG.md, Issues 5/7/10."
         )
         lines.append("")
         lines.append("| Site | Category | Reason | Overhead % | PCAP bytes | CDP bytes |")

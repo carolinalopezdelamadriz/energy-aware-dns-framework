@@ -25,18 +25,31 @@ def run_web_experiment(
 
     print(f"\nWeb experiment: {url}")
     capture = start_capture(pcap_path, interface=interface)
-    time.sleep(5)
+    try:
+        time.sleep(5)
 
-    if use_cdp:
-        profile = browse_and_profile(url, headless=headless, fresh_profile=fresh_profile)
-    else:
-        open_website(url, headless=headless, fresh_profile=fresh_profile)
-        profile = None
+        if use_cdp:
+            profile = browse_and_profile(url, headless=headless, fresh_profile=fresh_profile)
+        else:
+            open_website(url, headless=headless, fresh_profile=fresh_profile)
+            profile = None
 
-    time.sleep(8)
-    stop_capture(capture)
+        time.sleep(8)
+    finally:
+        # Always stop tcpdump, even if Selenium/Chrome raised - otherwise
+        # the process is orphaned and keeps capturing indefinitely (found
+        # running for 33+ hours after a batch failure, see ISSUES_LOG.md
+        # Issue 11)
+        stop_capture(capture)
 
-    total_bytes = analyze_total_bytes(pcap_path)
+    # Scope the PCAP analysis to Chrome's own local ports when available, so
+    # unrelated background traffic on the machine during the capture window
+    # isn't counted as part of this site's footprint (see ISSUES_LOG.md
+    # Issue 7). DNS lookups the OS resolver makes on Chrome's behalf outside
+    # its process tree can fall outside this scope too, but that's a tiny
+    # fraction of a page's total bytes compared to the HTTP(S) payload.
+    chrome_ports = profile.get("chrome_local_ports") if profile else None
+    total_bytes = analyze_total_bytes(pcap_path, ports=chrome_ports)
     print("Total bytes (pcap):", total_bytes)
 
     cfp_res = bytes_to_cfp(total_bytes)
@@ -53,8 +66,8 @@ def run_web_experiment(
         # network_bytes excludes resources served from disk cache or a
         # Service Worker (they never cross the network interface), so it is
         # the correct figure to compare against the PCAP
-        # total_bytes is
-        # still stored in the JSON as the "payload perceived by the browser"
+        
+        # total_bytes is still stored in the JSON as the "payload perceived by the browser"
         comparison_bytes = profile.get("network_bytes", profile["total_bytes"])
 
         overhead = total_bytes - comparison_bytes
@@ -87,6 +100,7 @@ def run_web_experiment(
         "cdp_bytes": profile["total_bytes"] if profile else "",
         "cdp_network_bytes": profile.get("network_bytes", "") if profile else "",
         "cdp_cached_bytes": profile.get("cached_bytes", "") if profile else "",
+        "capture_scoped_to_chrome_ports": bool(chrome_ports),
         "overhead_bytes": overhead if overhead is not None else "",
         "overhead_pct": overhead_pct if overhead_pct is not None else "",
         "energy_kwh": cfp_res.energy_kwh,
