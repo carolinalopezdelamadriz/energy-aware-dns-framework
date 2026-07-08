@@ -6,10 +6,11 @@ TFG title: **Framework-Based Energy-Aware Analysis of encrypted DNS: The Carbon 
 
 ## What it measures
 
-The framework looks at the problem from two sides:
+The framework looks at the problem from three sides:
 
 - isolated DNS resolution, comparing classic DNS, DNS over HTTPS (DoH) and DNS over QUIC (DoQ);
-- real web browsing, capturing both the network traffic and the resources seen by the browser.
+- real web browsing, capturing both the network traffic and the resources seen by the browser;
+- the traffic pattern itself: how many packet bursts a resolution produces, in which direction and what size, since that stays observable even when the query content is encrypted.
 
 The key comparison is:
 
@@ -18,19 +19,21 @@ The key comparison is:
 
 With those measured bytes, the framework calculates a first energy and CO2 estimate. The goal is not to claim a universal absolute value, but to use the same model across scenarios so the comparison is fair.
 
+Every encrypted experiment (DoH, DoQ, web) also logs its TLS/QUIC session keys next to the pcap, in the standard NSS key log format, so a capture can be decrypted and inspected in Wireshark afterwards without that changing how the measurement itself works.
+
 ## Requirements
 
 - Python 3.9+
 - Google Chrome and a ChromeDriver version compatible with Selenium
 - `tcpdump`
-- `kdig` with QUIC support for DoQ tests
+- `kdig` with QUIC support for DoQ tests (`brew install knot` on macOS)
 - Python dependencies from `requirements.txt`
 
 ```bash
 pip install -r requirements.txt
 ```
 
-DoQ also needs `aioquic`. Before running experiments, I usually check the local setup:
+DoQ also needs `aioquic`. DoH needs `httpx` with HTTP/2 support (the `h2` package, pulled in via `httpx[http2]` in `requirements.txt`) — Quad9's DoH endpoint requires HTTP/2 and rejects HTTP/1.1 outright. Before running experiments, I usually check the local setup:
 
 ```bash
 python3 src/main.py --mode check --interface en0
@@ -42,7 +45,7 @@ To check whether DoQ works from the current network:
 python3 src/main.py --mode check --interface en0 --check-doq --doq-resolver quad9
 ```
 
-I use macOS, where `tcpdump` normally needs administrator permissions. 
+I use macOS. `tcpdump` normally needs administrator permissions to capture, but if the machine already has BPF device permissions configured (for example from a previous Wireshark install), it captures fine as a regular user — worth checking with `--mode check` before defaulting to `sudo` for every run. Running with `sudo` leaves everything under `results/` owned by `root`, which then blocks `--mode analyze` afterwards unless that's run with `sudo` too.
 
 ## Basic usage
 
@@ -64,11 +67,13 @@ On mac, it is usually better to pass the network interface explicitly. For Wi-Fi
 python src/main.py --mode dns --protocols dns doh --domain bbc.com --repetitions 5 --interface en0
 ```
 
-If `tcpdump` fails because of permissions:
+If `tcpdump` fails because of permissions, the BPF device isn't set up for the current user — installing Wireshark (which configures this automatically) fixes it without needing `sudo` on every run:
 
 ```bash
 sudo -E python src/main.py --mode dns --protocols dns doh --domain bbc.com --repetitions 5 --interface en0
 ```
+
+`sudo -E` also works as a one-off, but it leaves the output files owned by `root`, which then need `sudo` again for `--mode analyze` to read/write them.
 
 To run only the web browsing part:
 
@@ -131,6 +136,7 @@ energy-aware-dns-framework/
 ├── src/                         # framework code
 ├── data/
 │   ├── sites_sample.csv         # five-site pilot sample
+│   ├── sites_10_pilot.csv       # ten-site pilot, one per category
 │   └── sites_100.csv            # 100-site main sample (10 per category)
 ├── results/
 │   ├── run_20260626/            # pilot run kept as reference
@@ -154,7 +160,7 @@ python3 src/main.py --mode check --interface en0
 Then the batch can be launched with:
 
 ```bash
-sudo -E python3 src/main.py \
+python3 src/main.py \
   --mode batch \
   --sites-file data/sites_100.csv \
   --protocols dns doh doq \
@@ -178,7 +184,11 @@ results/20260626_103000/
   web_results.csv
   web_profile_<timestamp>.json
   dns_<protocol>_<timestamp>.pcap
+  dns_<protocol>_<timestamp>.keylog        # empty for classic dns, no encryption to log
+  dns_<protocol>_<timestamp>_bursts.json
   web_<timestamp>.pcap
+  web_<timestamp>.keylog
+  web_<timestamp>_bursts.json
 ```
 
 Then the analysis step can be generated:
@@ -193,12 +203,18 @@ The analysis creates:
 results/<run_id>/analysis/
   summary.md
   dns_protocol_summary.csv
+  web_site_summary.csv
   web_category_summary.csv
+  web_flagged_sites.csv
   web_origin_summary.csv
   web_origin_resources.csv
   fig_dns_avg_bytes.png
-  fig_web_traffic_comparison.png
+  fig_burst_patterns.png
+  fig_web_overhead_scatter.png
+  fig_web_bytes_by_category.png
+  fig_web_overhead_by_category.png
   fig_web_origin_bytes.png
+  fig_cfp_by_category.png
   fig_dashboard.png
 ```
 
@@ -208,15 +224,13 @@ To regenerate the figures for the pilot run:
 python3 src/main.py --mode analyze --run-dir results/run_20260626
 ```
 
-That analysis compares bytes by protocol, estimates CFP, compares the CDP payload with the PCAP capture and gives a first breakdown of web resources by origin.
+That analysis compares bytes by protocol (including their packet burst pattern), estimates CFP, compares the CDP payload with the PCAP capture, flags visits that look bot-blocked or contaminated by background traffic instead of mixing them into the averages, and gives a first breakdown of web resources by origin.
 
 `--skip-web` can be used to test only the DNS side, and `--skip-dns` to test only the Selenium/CDP web side.
 
 One important detail with DoQ: it depends on the network allowing UDP/853 and on the resolver actually responding. For that reason, the framework uses one fixed DoQ resolver per run, `quad9` by default. If several resolvers are tried inside the same capture, the PCAP gets mixed with failed handshakes and retransmissions, so the byte count is no longer clean.
 
 ## Carbon model
-
-The current model is intentionally simple, because I still want the constants to be easy to replace once the bibliography/model choice is final:
 
 ```text
 E[J] = bytes * energy_per_byte_j

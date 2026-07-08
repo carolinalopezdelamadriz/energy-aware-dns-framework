@@ -38,7 +38,8 @@ def run_environment_check(interface=None, check_doq=False, doq_resolver="quad9")
 
     python_packages = {
         "dnspython": "dns",
-        "requests": "requests",
+        "httpx": "httpx",
+        "h2": "h2",
         "selenium": "selenium",
         "aioquic": "aioquic",
     }
@@ -83,8 +84,13 @@ def run_environment_check(interface=None, check_doq=False, doq_resolver="quad9")
     print("\nRecommended macOS command:")
     selected_interface = interface or "en0"
     print(
-        "sudo -E python3 src/main.py --mode batch "
+        "python3 src/main.py --mode batch "
         "--sites-file data/sites_sample.csv --protocols dns doh doq "
         "--repetitions 5 --web-repetitions 1 "
         f"--interface {selected_interface} --doq-resolver quad9"
+    )
+    print(
+        "(no sudo needed if tcpdump already has BPF permissions on this "
+        "machine - check first; using sudo makes files under results/ "
+        "owned by root, which then breaks --mode analyze run without sudo)"
     )
