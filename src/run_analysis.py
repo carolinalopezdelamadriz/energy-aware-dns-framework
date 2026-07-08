@@ -52,6 +52,11 @@ TOP_N_OUTLIERS = 10
 
 MIN_PLAUSIBLE_CDP_BYTES = 5000
 
+# Bytes seen in the 5s window before Chrome even opens - nothing site-related
+# can be in there, so this is direct evidence of background noise rather
+# than a statistical guess. A couple KB in 5 idle seconds is already more
+# than stray ARP/mDNS chatter accounts for in practice.
+MIN_PREAMBLE_NOISE_BYTES = 2000
 
 OUTLIER_IQR_MULTIPLIER = 3
 
@@ -129,6 +134,10 @@ def _flag_web_rows(web_rows: list[dict[str, str]]) -> dict[int, str]:
     for i, row in enumerate(web_rows):
         if _float(row, "cdp_bytes") < MIN_PLAUSIBLE_CDP_BYTES:
             flags[i] = FLAG_BOT_BLOCKED
+        elif _float(row, "preamble_noise_bytes") >= MIN_PREAMBLE_NOISE_BYTES:
+            # Direct evidence (measured, not inferred) that something else on
+            # the machine was already talking before this visit even started.
+            flags[i] = FLAG_CAPTURE_NOISE
         else:
             remaining.append((i, _float(row, "overhead_pct")))
 
@@ -273,6 +282,63 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
         fontsize=8,
         color="#78909C",
     )
+    _save_figure(plt, path)
+    return True
+
+
+def _plot_burst_patterns(path: Path, dns_bursts: list[dict[str, Any]], max_domains: int = 6) -> bool:
+    """Burst-size sequence per domain, one subplot per protocol - the
+    website-fingerprinting angle: even where the query content is encrypted
+    (DoH/DoQ), the shape of the burst sequence on the wire is still visible,
+    and may still differ enough between domains to be distinguishable.
+    """
+    if not dns_bursts:
+        return False
+
+    try:
+        plt = _setup_matplotlib(path.parent)
+    except ImportError:
+        return False
+
+    by_protocol: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for entry in dns_bursts:
+        by_protocol[entry.get("protocol", "unknown")].append(entry)
+
+    protocols = [p for p in ("dns", "doh", "doq") if p in by_protocol]
+    if not protocols:
+        return False
+
+    fig, axes = plt.subplots(1, len(protocols), figsize=(5.5 * len(protocols), 5))
+    if len(protocols) == 1:
+        axes = [axes]
+
+    for ax, protocol in zip(axes, protocols):
+        plotted = 0
+        for entry in by_protocol[protocol][:max_domains]:
+            sizes = entry.get("burst_sizes") or []
+            if not sizes:
+                continue
+            ax.step(
+                range(1, len(sizes) + 1),
+                sizes,
+                where="mid",
+                alpha=0.85,
+                linewidth=1.4,
+                label=entry.get("domain") or entry.get("site_label") or "?",
+            )
+            plotted += 1
+        ax.set_title(protocol.upper())
+        ax.set_xlabel("Burst index")
+        ax.set_ylabel("Burst size (bytes)")
+        ax.set_yscale("log")
+        ax.grid(True, linestyle="--", alpha=0.6)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        if plotted:
+            ax.legend(fontsize=7, frameon=False, loc="upper right")
+
+    fig.suptitle("Burst-size sequence per domain, by protocol (website-fingerprinting view)", fontsize=12)
+    fig.subplots_adjust(top=0.86, wspace=0.32)
     _save_figure(plt, path)
     return True
 
@@ -728,6 +794,14 @@ def _load_profiles(run_dir: Path) -> list[dict[str, Any]]:
     return profiles
 
 
+def _load_bursts(run_dir: Path, pattern: str) -> list[dict[str, Any]]:
+    bursts = []
+    for burst_path in sorted(run_dir.glob(pattern)):
+        with burst_path.open(encoding="utf-8") as json_file:
+            bursts.append(json.load(json_file))
+    return bursts
+
+
 def _profile_resource_summary(profiles: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows = []
     for profile in profiles:
@@ -768,16 +842,27 @@ def _markdown_report(
     ]
 
     if dns_summary:
-        lines.append("| Protocol | Samples | Avg bytes | Avg CO₂ (kg) | Overhead vs DNS |")
-        lines.append("| --- | ---: | ---: | ---: | ---: |")
+        lines.append("| Protocol | Samples | Avg bytes | Avg CO₂ (kg) | Overhead vs DNS | Avg bursts | Avg burst bytes |")
+        lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: |")
         dns_base = next((row["avg_bytes"] for row in dns_summary if row["protocol"] == "dns"), None)
         for row in dns_summary:
             ratio = (row["avg_bytes"] / dns_base) if dns_base else 0
             lines.append(
                 f"| {row['protocol'].upper()} | {row['samples']} | "
                 f"{row['avg_bytes']:.0f} ({_format_bytes(row['avg_bytes'])}) | "
-                f"{row['avg_co2_kg']:.6e} | {ratio:.1f}× |"
+                f"{row['avg_co2_kg']:.6e} | {ratio:.1f}× | "
+                f"{row['avg_num_bursts']:.1f} | {_format_bytes(row['avg_avg_burst_bytes'])} |"
             )
+        lines.extend(
+            [
+                "",
+                "Burst = maximal run of consecutive packets in the same direction "
+                "(website-fingerprinting literature definition). Even where DoH/DoQ "
+                "encrypt the query content, the burst-size sequence on the wire "
+                "stays observable — see `fig_burst_patterns.png` and the per-visit "
+                "`dns_*_bursts.json` files for the full sequence per domain.",
+            ]
+        )
     else:
         lines.append("No DNS results found for this run.")
 
@@ -843,8 +928,9 @@ def _markdown_report(
             f"were excluded from the tables and plots above: {len(bot_blocked)} likely bot-blocked or "
             f"failed to load (CDP payload under {_format_bytes(MIN_PLAUSIBLE_CDP_BYTES)}), and "
             f"{len(noise)} likely affected by unrelated background network traffic during capture "
-            "(overhead statistically extreme vs. the rest of the run). "
-            "See docs/apuntes_personales/ISSUES_LOG.md, Issues 5/7/10."
+            f"(either measured directly - {_format_bytes(MIN_PREAMBLE_NOISE_BYTES)}+ seen in the "
+            "5s window before Chrome even opened - or overhead statistically extreme vs. the rest "
+            "of the run). See docs/apuntes_personales/ISSUES_LOG.md, Issues 5/7/10."
         )
         lines.append("")
         lines.append("| Site | Category | Reason | Overhead % | PCAP bytes | CDP bytes |")
@@ -889,8 +975,11 @@ def analyze_run(run_dir: str | Path):
     dns_rows = _read_csv(run_dir / "dns_results.csv")
     web_rows = _read_csv(run_dir / "web_results.csv")
     profiles = _load_profiles(run_dir)
+    dns_bursts = _load_bursts(run_dir, "dns_*_bursts.json")
 
-    dns_summary = _summarize(dns_rows, "protocol", ["bytes", "energy_kwh", "co2_kg"])
+    dns_summary = _summarize(
+        dns_rows, "protocol", ["bytes", "energy_kwh", "co2_kg", "num_bursts", "avg_burst_bytes"]
+    )
 
     flag_by_index = _flag_web_rows(web_rows)
     for i, row in enumerate(web_rows):
@@ -934,6 +1023,12 @@ def analyze_run(run_dir: str | Path):
             "fig_dns_avg_bytes.png",
             lambda: _plot_dns_protocol_comparison(
                 analysis_dir / "fig_dns_avg_bytes.png", dns_summary
+            ),
+        ),
+        (
+            "fig_burst_patterns.png",
+            lambda: _plot_burst_patterns(
+                analysis_dir / "fig_burst_patterns.png", dns_bursts
             ),
         ),
         (

@@ -13,6 +13,7 @@ import re
 # packet instead
 
 FRAME_LENGTH_RE = re.compile(r"ethertype \S+ \([^)]*\), length (\d+):")
+TIMESTAMP_RE = re.compile(r"^(\d+\.\d+) ")
 
 
 def _sum_frame_bytes(cmd: list[str]) -> int:
@@ -23,6 +24,27 @@ def _sum_frame_bytes(cmd: list[str]) -> int:
         match = FRAME_LENGTH_RE.search(line)
         if match:
             total += int(match.group(1))
+
+    return total
+
+
+def analyze_bytes_in_window(file_path, start_ts: float, end_ts: float) -> int:
+    """Sums frame bytes for packets whose capture timestamp falls in
+    [start_ts, end_ts) - used to measure background noise during a window
+    where nothing related to the experiment should be happening yet (e.g.
+    before Chrome has even opened), instead of only inferring contamination
+    statistically after the fact.
+    """
+    result = subprocess.run(["tcpdump", "-r", file_path, "-n", "-e", "-tt"], capture_output=True, text=True)
+
+    total = 0
+    for line in result.stdout.split("\n"):
+        ts_match = TIMESTAMP_RE.match(line)
+        if not ts_match or not (start_ts <= float(ts_match.group(1)) < end_ts):
+            continue
+        frame_match = FRAME_LENGTH_RE.search(line)
+        if frame_match:
+            total += int(frame_match.group(1))
 
     return total
 

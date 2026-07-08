@@ -10,15 +10,21 @@ from dns_resolver import CLASSIC_DNS_RESOLVER, resolve_classic
 from doh_resolver import DOH_FALLBACK_IPS, DOH_RESOLVER_HOST, DOH_RESOLVER_NAME, resolve_doh
 from doq_resolver import DEFAULT_DOQ_RESOLVER, get_doq_resolver, resolve_doq
 from cfp import bytes_to_cfp, pretty_print_cfp
-from results import append_csv_row, ensure_output_dir
+from fingerprint import burst_features
+from results import append_csv_row, ensure_output_dir, write_json
 
 
 def _resolve_host_ips(hostname: str) -> List[str]:
+    # IPv4 and IPv6 both included - dns.quad9.net resolves to IPv6 first on
+    # this machine and httpx/requests connect over whichever the OS prefers,
+    # so filtering down to IPv4-only here left the capture filter watching
+    # addresses the connection never actually used (0 bytes captured despite
+    # a real, successful DoH resolution).
     try:
         addresses = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
     except socket.gaierror:
         return []
-    return sorted({item[4][0] for item in addresses if "." in item[4][0]})
+    return sorted({item[4][0] for item in addresses})
 
 
 def _build_host_filter(hosts: List[str], port: int, transport: str) -> str:
@@ -46,6 +52,9 @@ def run_dns_experiment(
     started_at = int(time.time())
     output_path = ensure_output_dir(output_dir)
     pcap_path = os.path.join(output_path, f"dns_{protocol}_{started_at}.pcap")
+    # TLS/QUIC session secrets for this run, so the pcap can be decrypted in
+    # Wireshark later - not used for "dns" since classic DNS isn't encrypted.
+    keylog_path = os.path.join(output_path, f"dns_{protocol}_{started_at}.keylog") if protocol != "dns" else None
 
     resolver_name = ""
     resolver_host = ""
@@ -82,9 +91,9 @@ def run_dns_experiment(
             if protocol == "dns":
                 resolve_classic(random_domain)
             elif protocol == "doh":
-                resolve_doh(random_domain)
+                resolve_doh(random_domain, keylog_path=keylog_path)
             elif protocol == "doq":
-                if not resolve_doq(random_domain, resolver_name=doq_resolver):
+                if not resolve_doq(random_domain, resolver_name=doq_resolver, keylog_path=keylog_path):
                     failed_queries += 1
 
         time.sleep(1.5)
@@ -113,6 +122,19 @@ def run_dns_experiment(
     cfp_res = bytes_to_cfp(dns_bytes)
     pretty_print_cfp(f"DNS-{protocol} ({domain})", cfp_res)
 
+    # Burst-level features (packet sizes/timing grouped by direction) for the
+    # website-fingerprinting angle: even when the query content is encrypted
+    # (DoH/DoQ), the shape of the burst sequence is still observable on the
+    # wire and may leak which domain was queried.
+    burst = burst_features(pcap_path)
+    burst_path = os.path.join(output_path, f"dns_{protocol}_{started_at}_bursts.json")
+    write_json(burst_path, {
+        "domain": domain,
+        "protocol": protocol,
+        "site_label": site_label,
+        **burst,
+    })
+
     result = {
         "experiment": "dns",
         "timestamp": started_at,
@@ -128,6 +150,12 @@ def run_dns_experiment(
         "bytes": cfp_res.bytes,
         "energy_kwh": cfp_res.energy_kwh,
         "co2_kg": cfp_res.co2_kg,
+        "num_bursts": burst["num_bursts"],
+        "num_bursts_out": burst["num_bursts_out"],
+        "num_bursts_in": burst["num_bursts_in"],
+        "avg_burst_bytes": burst["avg_burst_bytes"],
+        "burst_file": str(burst_path),
+        "keylog_file": str(keylog_path) if keylog_path and os.path.exists(keylog_path) else "",
     }
 
     append_csv_row(os.path.join(output_path, "dns_results.csv"), result)

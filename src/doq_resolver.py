@@ -52,7 +52,7 @@ def _validate_dns_response(data):
     return True
 
 
-async def _resolve_doq_aioquic(domain, host, server_name, port=DEFAULT_DOQ_PORT, timeout=5):
+async def _resolve_doq_aioquic(domain, host, server_name, port=DEFAULT_DOQ_PORT, timeout=5, keylog_path=None):
     try:
         from aioquic.asyncio import QuicConnectionProtocol
         from aioquic.asyncio.client import connect
@@ -88,15 +88,25 @@ async def _resolve_doq_aioquic(domain, host, server_name, port=DEFAULT_DOQ_PORT,
     configuration.server_name = server_name
     wire_query = _build_dns_query(domain)
 
-    async with connect(
-        host,
-        port,
-        configuration=configuration,
-        create_protocol=DoQClientProtocol,
-        wait_connected=True,
-    ) as protocol:
-        raw_response = await protocol.query(wire_query)
-        return _validate_dns_response(raw_response)
+    # Appended (not overwritten) so repeated queries in the same experiment
+    # all land in one keylog file that Wireshark can load against the pcap.
+    keylog_file = open(keylog_path, "a") if keylog_path else None
+    if keylog_file:
+        configuration.secrets_log_file = keylog_file
+
+    try:
+        async with connect(
+            host,
+            port,
+            configuration=configuration,
+            create_protocol=DoQClientProtocol,
+            wait_connected=True,
+        ) as protocol:
+            raw_response = await protocol.query(wire_query)
+            return _validate_dns_response(raw_response)
+    finally:
+        if keylog_file:
+            keylog_file.close()
 
 
 def _resolve_doq_kdig(domain, host):
@@ -111,18 +121,22 @@ def _resolve_doq_kdig(domain, host):
     return True
 
 
-def resolve_doq(domain, resolver_name=DEFAULT_DOQ_RESOLVER, use_kdig_fallback=True):
+def resolve_doq(domain, resolver_name=DEFAULT_DOQ_RESOLVER, use_kdig_fallback=True, keylog_path=None):
     # single fixed resolver
     resolver = get_doq_resolver(resolver_name)
 
     try:
         return asyncio.run(
-            _resolve_doq_aioquic(domain, host=resolver["host"], server_name=resolver["server_name"])
+            _resolve_doq_aioquic(
+                domain, host=resolver["host"], server_name=resolver["server_name"], keylog_path=keylog_path
+            )
         )
     except Exception as exc:
         print(f"DoQ aioquic failed ({resolver['name']}): {exc}")
 
     if use_kdig_fallback:
+        # kdig has no equivalent keylog support, so queries that fall back
+        # here won't have their secrets captured.
         print(f"Trying kdig as fallback for {resolver['name']}...")
         return _resolve_doq_kdig(domain, resolver["host"])
 

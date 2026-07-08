@@ -1,5 +1,6 @@
 import atexit
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -33,7 +34,17 @@ TRACKER_KEYWORDS = (
 PAGE_LOAD_TIMEOUT = 45
 
 
-def _build_chrome_driver(headless: bool = False, fresh_profile: bool = False) -> webdriver.Chrome:
+def _build_chrome_driver(headless: bool = False, fresh_profile: bool = False, keylog_path: str = None) -> webdriver.Chrome:
+    # Chrome reads SSLKEYLOGFILE from its own process environment at launch
+    # and logs TLS/QUIC session secrets to it in NSS key log format - same
+    # mechanism as the DoH/DoQ resolvers, so the web pcap can be decrypted
+    # in Wireshark too. Set before spawning each Chrome instance so a fresh
+    # visit doesn't inherit a stale path from a previous one.
+    if keylog_path:
+        os.environ["SSLKEYLOGFILE"] = keylog_path
+    else:
+        os.environ.pop("SSLKEYLOGFILE", None)
+
     options = Options()
 
     if headless:
@@ -159,8 +170,8 @@ class _ChromePortWatcher:
         return sorted(self._ports)
 
 
-def open_website(url: str, duration: int = 10, headless: bool = False, fresh_profile: bool = False):
-    driver = _build_chrome_driver(headless=headless, fresh_profile=fresh_profile)
+def open_website(url: str, duration: int = 10, headless: bool = False, fresh_profile: bool = False, keylog_path: str = None):
+    driver = _build_chrome_driver(headless=headless, fresh_profile=fresh_profile, keylog_path=keylog_path)
     try:
         driver.get(url)
         time.sleep(duration)
@@ -191,7 +202,9 @@ def _classify_resource(page_url: str, resource_url: str) -> str:
     return "third_party"
 
 
-def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fresh_profile: bool = False) -> dict:
+def browse_and_profile(
+    url: str, duration: int = 10, headless: bool = False, fresh_profile: bool = False, keylog_path: str = None
+) -> dict:
     """
     Loads a URL with Selenium + CDP and returns an HTTP traffic profile.
 
@@ -209,7 +222,7 @@ def browse_and_profile(url: str, duration: int = 10, headless: bool = False, fre
                 traffic (best-effort; empty if PID/port lookup failed)
         }
     """
-    driver = _build_chrome_driver(headless=headless, fresh_profile=fresh_profile)
+    driver = _build_chrome_driver(headless=headless, fresh_profile=fresh_profile, keylog_path=keylog_path)
 
     port_watcher = None
     try:
