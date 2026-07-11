@@ -221,7 +221,7 @@ docs/
 # Cache de matplotlib dentro de resultados
 **/.matplotlib/
 
-# Ejecuciones generadas. Solo dejo versionada la ejecución piloto de referencia
+# Ejecuciones generadas. Solo dejo versionadas las ejecuciones de referencia
 results/**/*
 !results/.gitkeep
 !results/run_20260626/
@@ -231,7 +231,17 @@ results/**/*
 !results/archive/
 !results/archive/README.md
 
-# Re-ignorar capturas grandes incluso dentro de la ejecución piloto
+# Run masivo (100 sites x 3 protocolos): solo los resultados refinados y el
+# análisis agregado, no las capturas crudas (pcap/keylog) ni los perfiles
+# JSON por visita
+!results/20260709_001914/
+!results/20260709_001914/dns_results.csv
+!results/20260709_001914/web_results.csv
+!results/20260709_001914/manifest.json
+!results/20260709_001914/analysis/
+!results/20260709_001914/analysis/**
+
+# Re-ignorar capturas grandes incluso dentro de las ejecuciones versionadas
 results/**/*.pcap
 
 # Re-ignorar ficheros locales/cache después de las excepciones anteriores
