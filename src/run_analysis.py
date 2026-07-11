@@ -1188,6 +1188,27 @@ def _markdown_report(
             ]
         )
 
+        lines.extend(["", "### Cost per single query", ""])
+        lines.append("| Protocol | Median bytes/query | Median energy/query (kWh) | Median CO₂/query (kg) |")
+        lines.append("| --- | ---: | ---: | ---: |")
+        for row in dns_summary:
+            lines.append(
+                f"| {row['protocol'].upper()} | {_format_bytes(row.get('median_bytes_per_query', 0.0))} | "
+                f"{row.get('median_energy_kwh_per_query', 0.0):.3e} | "
+                f"{row.get('median_co2_kg_per_query', 0.0):.3e} |"
+            )
+        lines.extend(
+            [
+                "",
+                "Same measurements as the table above, divided by each experiment's own "
+                "`repetitions` count - the cost of a single resolution instead of a batch "
+                "of 5. The ×ratios don't change either way (same repetitions count for all "
+                "three protocols in a given run), only these absolute per-query figures do. "
+                "At this scale CO₂ is a tiny fraction of a gram per query - the % of page "
+                "weight table below is the more communicable framing of the same result.",
+            ]
+        )
+
         if wilcoxon_tests:
             lines.extend(["", "### Paired protocol comparison (Wilcoxon signed-rank)", ""])
             lines.append("| Comparison | Site pairs | p-value | Effect size (rank-biserial r) |")
@@ -1401,10 +1422,18 @@ def analyze_run(run_dir: str | Path):
     profiles = _load_profiles(run_dir)
     dns_bursts = _load_bursts(run_dir, "dns_*_bursts.json")
 
+    for row in dns_rows:
+        repetitions = _float(row, "repetitions")
+        if repetitions > 0:
+            row["bytes_per_query"] = _float(row, "bytes") / repetitions
+            row["energy_kwh_per_query"] = _float(row, "energy_kwh") / repetitions
+            row["co2_kg_per_query"] = _float(row, "co2_kg") / repetitions
+
     dns_summary = _summarize(
         dns_rows,
         "protocol",
-        ["bytes", "energy_kwh", "co2_kg", "num_bursts", "avg_burst_bytes",
+        ["bytes", "energy_kwh", "co2_kg", "bytes_per_query", "energy_kwh_per_query",
+         "co2_kg_per_query", "num_bursts", "avg_burst_bytes",
          "handshake_bytes", "control_bytes", "payload_bytes"],
     )
     wilcoxon_tests = _wilcoxon_dns_comparisons(dns_rows)
