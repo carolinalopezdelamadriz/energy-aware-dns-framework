@@ -30,6 +30,9 @@ def run_environment_check(interface=None, check_doq=False, doq_resolver="quad9")
         "tcpdump": _command_ok("tcpdump"),
         "kdig": _command_ok("kdig"),
         "chrome": _chrome_found(),
+        # needed for overhead_breakdown.py's handshake/control/payload split
+        # (decrypts TLS/QUIC with the saved session-key logs)
+        "tshark": _command_ok("tshark"),
     }
 
     for name, ok in checks.items():

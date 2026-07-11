@@ -4,10 +4,14 @@ from dataclasses import dataclass
 
 # Same tcpdump text parsing approach as analyzer.py, just with -tt for
 # epoch timestamps instead of the default HH:MM:SS clock format, since
-# bursts need to be ordered and timed, not just summed. Host is \S+ rather
+# bursts need to be ordered and timed, not just added
+# 
+# Host is \S+ rather
 # than a strict dotted-quad so this matches IPv6 lines too (dns.quad9.net
-# resolves to IPv6 first here, and Chrome/httpx connect over it - an
-# IPv4-only pattern silently dropped every one of those packets).
+# resolves to IPv6 first here, and Chrome/httpx connect over it
+# 
+# an IPv4-only pattern silently dropped every one of those packets)
+
 PACKET_RE = re.compile(
     r"^(\d+\.\d+) .*ethertype \S+ \([^)]*\), length (\d+): "
     r"(\S+)\.\d+ > (\S+)\.\d+:"
@@ -16,9 +20,12 @@ PACKET_RE = re.compile(
 
 def _local_ip_addresses() -> set[str]:
     # Direction can't be inferred from "is this a private address" once
-    # IPv6 is in play - home connections typically hand out globally
-    # routable IPv6 addresses with no NAT, so both sides of a flow can look
-    # "public". Asking the OS which addresses are actually ours instead.
+    # IPv6 is in play
+
+    # home connections typically hand out globally routable IPv6 addresses with no NAT, so both sides of a flow can look
+    # "public"
+    # 
+    # Asking the OS which addresses are actually ours instead
     try:
         result = subprocess.run(["ifconfig"], capture_output=True, text=True, timeout=5)
     except Exception:

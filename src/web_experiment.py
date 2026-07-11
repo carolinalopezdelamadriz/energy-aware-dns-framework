@@ -7,6 +7,7 @@ from browser import open_website, browse_and_profile
 from analyzer import analyze_total_bytes, analyze_bytes_in_window
 from cfp import bytes_to_cfp, pretty_print_cfp
 from fingerprint import burst_features
+from overhead_breakdown import breakdown_web_overhead
 from results import append_csv_row, ensure_output_dir, write_json
 
 
@@ -23,8 +24,8 @@ def run_web_experiment(
     started_at = int(time.time())
     output_path = ensure_output_dir(output_dir)
     pcap_path = os.path.join(output_path, f"web_{started_at}.pcap")
-    # TLS/QUIC session secrets Chrome logs for this visit (see browser.py) -
-    # same mechanism as the DoH/DoQ resolvers, for decrypting the web pcap.
+    # TLS/QUIC session secrets Chrome logs for this visit (see browser.py) 
+    # same mechanism as the DoH/DoQ resolvers, for decrypting the web pcap
     keylog_path = os.path.join(output_path, f"web_{started_at}.keylog")
 
     print(f"\nWeb experiment: {url}")
@@ -42,10 +43,7 @@ def run_web_experiment(
 
         time.sleep(8)
     finally:
-        # Always stop tcpdump, even if Selenium/Chrome raised - otherwise
-        # the process is orphaned and keeps capturing indefinitely (found
-        # running for 33+ hours after a batch failure, see ISSUES_LOG.md
-        # Issue 11)
+        # Always stop tcpdump, even if Selenium/Chrome raised
         stop_capture(capture)
 
     # Scope the PCAP analysis to Chrome's own local ports when available, so
@@ -62,7 +60,7 @@ def run_web_experiment(
     # Bytes captured in the 5s before Chrome even opened - nothing site-related
     # could be in there, so any bytes are a direct measurement of background
     # noise on the machine during this specific visit, rather than an
-    # after-the-fact statistical guess (see run_analysis.py's IQR flagging).
+    # after-the-fact statistical guess (see run_analysis.py's IQR flagging)
     preamble_noise_bytes = analyze_bytes_in_window(pcap_path, preamble_start, preamble_end)
     if preamble_noise_bytes:
         print(f"Background noise before Chrome opened: {preamble_noise_bytes} bytes")
@@ -70,8 +68,23 @@ def run_web_experiment(
     cfp_res = bytes_to_cfp(total_bytes)
     pretty_print_cfp(f"WEB ({url})", cfp_res)
 
+    # Handshake/control/payload split for the web pcap (see
+    # overhead_breakdown.py) 
+    # 
+    # same idea as the DNS side, scoped to Chrome's own ports like the byte count above. 
+    # 
+    # handshake_bytes + control_bytes is
+    # overhead that is demonstrably protocol (TCP/TLS/QUIC connection setup,
+    # ACKs, teardown) and could never have been part of a CDP resource no
+    # matter how well CDP instrumented the page
+    # 
+    # Whatever gap remains between web_payload_bytes and CDP's own network_bytes (computed below once the
+    # profile is available) is NOT protocol overhead - it's the residual
+    
+    web_overhead = breakdown_web_overhead(pcap_path, keylog_path=keylog_path, ports=chrome_ports)
+
     # Same burst-level features as the DNS side (see fingerprint.py) - scoped
-    # to Chrome's own ports like the byte count above, for the same reason.
+    # to Chrome's own ports like the byte count above, for the same reason
     burst = burst_features(pcap_path, ports=chrome_ports)
     burst_path = os.path.join(output_path, f"web_{started_at}_bursts.json")
     write_json(burst_path, {
@@ -110,6 +123,17 @@ def run_web_experiment(
         if profile.get("cached_bytes", 0) > 0:
             print(f"Bytes served from cache/Service Worker (excluded): {profile['cached_bytes']}")
 
+        # How much of that overhead is demonstrably protocol (handshake +
+        # control) vs residual (the rest, which CDP should in principle have
+        # seen as network_bytes but didn't fully account for).
+        protocol_explained = web_overhead["handshake_bytes"] + web_overhead["control_bytes"]
+        residual = web_overhead["payload_bytes"] - comparison_bytes
+        print(
+            f"Of that overhead, {protocol_explained} bytes is protocol "
+            f"(handshake+control) and {residual} bytes is residual "
+            "(payload vs CDP network_bytes - a likely CDP blind spot, not protocol cost)"
+        )
+
         profile_path = os.path.join(output_path, f"web_profile_{started_at}.json")
         write_json(profile_path, profile)
 
@@ -129,6 +153,9 @@ def run_web_experiment(
         "capture_scoped_to_chrome_ports": bool(chrome_ports),
         "overhead_bytes": overhead if overhead is not None else "",
         "overhead_pct": overhead_pct if overhead_pct is not None else "",
+        "web_handshake_bytes": web_overhead["handshake_bytes"],
+        "web_control_bytes": web_overhead["control_bytes"],
+        "web_payload_bytes": web_overhead["payload_bytes"],
         "energy_kwh": cfp_res.energy_kwh,
         "co2_kg": cfp_res.co2_kg,
         "num_bursts": burst["num_bursts"],

@@ -7,11 +7,19 @@ from typing import List, Optional
 from capture import start_capture, stop_capture
 from analyzer import analyze_dns_bytes, analyze_https_bytes, analyze_quic_bytes
 from dns_resolver import CLASSIC_DNS_RESOLVER, resolve_classic
-from doh_resolver import DOH_FALLBACK_IPS, DOH_RESOLVER_HOST, DOH_RESOLVER_NAME, resolve_doh
-from doq_resolver import DEFAULT_DOQ_RESOLVER, get_doq_resolver, resolve_doq
+from doh_resolver import DOH_FALLBACK_IPS, DOH_RESOLVER_HOST, DOH_RESOLVER_NAME, resolve_doh, resolve_doh_batch
+from doq_resolver import DEFAULT_DOQ_RESOLVER, get_doq_resolver, resolve_doq, resolve_doq_batch
 from cfp import bytes_to_cfp, pretty_print_cfp
 from fingerprint import burst_features
+from overhead_breakdown import breakdown_overhead
 from results import append_csv_row, ensure_output_dir, write_json
+
+# which reuse_connection values to run for each --connection-mode choice
+CONNECTION_MODES = {
+    "cold_start": [False],
+    "amortized": [True],
+    "both": [False, True],
+}
 
 
 def _resolve_host_ips(hostname: str) -> List[str]:
@@ -19,7 +27,7 @@ def _resolve_host_ips(hostname: str) -> List[str]:
     # this machine and httpx/requests connect over whichever the OS prefers,
     # so filtering down to IPv4-only here left the capture filter watching
     # addresses the connection never actually used (0 bytes captured despite
-    # a real, successful DoH resolution).
+    # a real, successful DoH resolution)
     try:
         addresses = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
     except socket.gaierror:
@@ -45,6 +53,7 @@ def run_dns_experiment(
     site_label: str = "",
     category: str = "",
     doq_resolver: str = DEFAULT_DOQ_RESOLVER,
+    reuse_connection: bool = False,
 ):
     if protocol not in {"dns", "doh", "doq"}:
         raise ValueError("protocol must be one of: dns, doh, doq")
@@ -53,7 +62,7 @@ def run_dns_experiment(
     output_path = ensure_output_dir(output_dir)
     pcap_path = os.path.join(output_path, f"dns_{protocol}_{started_at}.pcap")
     # TLS/QUIC session secrets for this run, so the pcap can be decrypted in
-    # Wireshark later - not used for "dns" since classic DNS isn't encrypted.
+    # Wireshark later (not used for "dns" since classic DNS isn't encrypted)
     keylog_path = os.path.join(output_path, f"dns_{protocol}_{started_at}.keylog") if protocol != "dns" else None
 
     resolver_name = ""
@@ -84,24 +93,35 @@ def run_dns_experiment(
     try:
         time.sleep(1)
 
-        for _ in range(repetitions):
-            # random subdomains so the resolver cannot cache the response
-            random_domain = f"{random.randint(1, 100000)}.{domain}"
+        # random subdomains so the resolver cannot cache the response, same
+        # for both connection modes
+        random_domains = [f"{random.randint(1, 100000)}.{domain}" for _ in range(repetitions)]
 
-            if protocol == "dns":
+        if protocol == "dns":
+            # UDP, connectionless 
+            # there's no connection to reuse, so reuse_connection is a no-op here.
+            for random_domain in random_domains:
                 resolve_classic(random_domain)
-            elif protocol == "doh":
-                resolve_doh(random_domain, keylog_path=keylog_path)
-            elif protocol == "doq":
-                if not resolve_doq(random_domain, resolver_name=doq_resolver, keylog_path=keylog_path):
-                    failed_queries += 1
+        elif protocol == "doh":
+            if reuse_connection:
+                resolve_doh_batch(random_domains, keylog_path=keylog_path)
+            else:
+                for random_domain in random_domains:
+                    resolve_doh(random_domain, keylog_path=keylog_path)
+        elif protocol == "doq":
+            if reuse_connection:
+                results = resolve_doq_batch(random_domains, resolver_name=doq_resolver, keylog_path=keylog_path)
+                failed_queries += sum(1 for ok in results if not ok)
+            else:
+                for random_domain in random_domains:
+                    if not resolve_doq(random_domain, resolver_name=doq_resolver, keylog_path=keylog_path):
+                        failed_queries += 1
 
         time.sleep(1.5)
     finally:
-        # Always stop tcpdump, even if a query raised - otherwise the
-        # process is orphaned and keeps capturing indefinitely (found
-        # running for 33+ hours after a batch failure, see ISSUES_LOG.md
-        # Issue 11)
+        # always stop tcpdump, even if a query raised 
+        # otherwise the process is orphaned and keeps capturing indefinitely 
+        # (found running for 33+ hours after a batch failure)
         stop_capture(capture)
 
     if protocol == "dns":
@@ -123,9 +143,10 @@ def run_dns_experiment(
     pretty_print_cfp(f"DNS-{protocol} ({domain})", cfp_res)
 
     # Burst-level features (packet sizes/timing grouped by direction) for the
-    # website-fingerprinting angle: even when the query content is encrypted
-    # (DoH/DoQ), the shape of the burst sequence is still observable on the
-    # wire and may leak which domain was queried.
+    # website-fingerprinting angle: 
+    # even when the query content is encrypted (DoH/DoQ), the shape of the burst sequence is still observable on the
+    # wire and may leak which domain was queried
+
     burst = burst_features(pcap_path)
     burst_path = os.path.join(output_path, f"dns_{protocol}_{started_at}_bursts.json")
     write_json(burst_path, {
@@ -134,6 +155,12 @@ def run_dns_experiment(
         "site_label": site_label,
         **burst,
     })
+
+    # Splits dns_bytes into handshake / control / payload using the session
+    # keys captured above 
+    # the actual "control bytes / TLS handshake / QUIC
+    # signaling" breakdown, not just a total
+    overhead = breakdown_overhead(pcap_path, protocol, keylog_path=keylog_path)
 
     result = {
         "experiment": "dns",
@@ -156,6 +183,10 @@ def run_dns_experiment(
         "avg_burst_bytes": burst["avg_burst_bytes"],
         "burst_file": str(burst_path),
         "keylog_file": str(keylog_path) if keylog_path and os.path.exists(keylog_path) else "",
+        "handshake_bytes": overhead["handshake_bytes"],
+        "control_bytes": overhead["control_bytes"],
+        "payload_bytes": overhead["payload_bytes"],
+        "connection_mode": "amortized" if reuse_connection else "cold_start",
     }
 
     append_csv_row(os.path.join(output_path, "dns_results.csv"), result)

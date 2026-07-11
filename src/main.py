@@ -98,6 +98,16 @@ def parse_args():
         action="store_true",
         help="In check mode, verify DoQ connectivity with the chosen resolver",
     )
+    parser.add_argument(
+        "--connection-mode",
+        choices=("cold_start", "amortized", "both"),
+        default="cold_start",
+        help=(
+            "cold_start: fresh connection per DNS query (worst case, no reuse). "
+            "amortized: one connection reused for all repetitions in a protocol "
+            "(handshake cost paid once). both: run each protocol once in each mode."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -131,6 +141,7 @@ def main():
             headless=args.headless,
             fresh_profile=args.fresh_profile,
             site_delay=args.site_delay,
+            connection_mode=args.connection_mode,
         )
         return
 
@@ -141,18 +152,20 @@ def main():
         return
 
     if args.mode in ("all", "dns"):
-        from dns_experiment import run_dns_experiment
+        from dns_experiment import CONNECTION_MODES, run_dns_experiment
 
         print("\n=== DNS EXPERIMENTS ===")
         for proto in args.protocols:
-            run_dns_experiment(
-                args.domain,
-                proto,
-                repetitions=args.repetitions,
-                output_dir=args.output_dir,
-                interface=args.interface,
-                doq_resolver=args.doq_resolver,
-            )
+            for reuse_connection in CONNECTION_MODES[args.connection_mode]:
+                run_dns_experiment(
+                    args.domain,
+                    proto,
+                    repetitions=args.repetitions,
+                    output_dir=args.output_dir,
+                    interface=args.interface,
+                    doq_resolver=args.doq_resolver,
+                    reuse_connection=reuse_connection,
+                )
 
     if args.mode in ("all", "web"):
         from web_experiment import run_web_experiment

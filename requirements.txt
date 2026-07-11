@@ -2,6 +2,7 @@ selenium
 pyshark
 pandas
 matplotlib
+scipy # tests de Wilcoxon en run_analysis.py
 dnspython
 httpx[http2] # para DoH (DNS over HTTPS) - dns.quad9.net exige HTTP/2 (RFC 8484 5.2)
 aioquic # para DoQ (DNS over QUIC)

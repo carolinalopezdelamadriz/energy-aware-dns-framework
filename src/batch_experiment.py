@@ -69,7 +69,10 @@ def run_batch_experiment(
     headless=False,
     fresh_profile=False,
     site_delay=5,
+    connection_mode="cold_start",
 ):
+    from dns_experiment import CONNECTION_MODES
+
     sites = load_sites(sites_file)
     run_id = build_run_id()
     run_output_dir = ensure_output_dir(Path(output_dir) / run_id)
@@ -87,6 +90,7 @@ def run_batch_experiment(
         "headless": headless,
         "fresh_profile": fresh_profile,
         "site_delay": site_delay,
+        "connection_mode": connection_mode,
     }
     write_manifest(run_output_dir, config, sites)
 
@@ -105,16 +109,18 @@ def run_batch_experiment(
                 from dns_experiment import run_dns_experiment
 
                 for protocol in protocols:
-                    run_dns_experiment(
-                        site["domain"],
-                        protocol,
-                        repetitions=dns_repetitions,
-                        output_dir=run_output_dir,
-                        interface=interface,
-                        site_label=site["label"],
-                        category=site["category"],
-                        doq_resolver=doq_resolver,
-                    )
+                    for reuse_connection in CONNECTION_MODES[connection_mode]:
+                        run_dns_experiment(
+                            site["domain"],
+                            protocol,
+                            repetitions=dns_repetitions,
+                            output_dir=run_output_dir,
+                            interface=interface,
+                            site_label=site["label"],
+                            category=site["category"],
+                            doq_resolver=doq_resolver,
+                            reuse_connection=reuse_connection,
+                        )
 
             if not skip_web:
                 from web_experiment import run_web_experiment

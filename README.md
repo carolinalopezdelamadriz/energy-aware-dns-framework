@@ -27,6 +27,7 @@ Every encrypted experiment (DoH, DoQ, web) also logs its TLS/QUIC session keys n
 - Google Chrome and a ChromeDriver version compatible with Selenium
 - `tcpdump`
 - `kdig` with QUIC support for DoQ tests (`brew install knot` on macOS)
+- `tshark` (comes with Wireshark) - decrypts each DNS pcap with its saved session-key log to split bytes into handshake/control/payload
 - Python dependencies from `requirements.txt`
 
 ```bash
@@ -209,6 +210,7 @@ results/<run_id>/analysis/
   web_origin_summary.csv
   web_origin_resources.csv
   fig_dns_avg_bytes.png
+  fig_overhead_breakdown.png
   fig_burst_patterns.png
   fig_web_overhead_scatter.png
   fig_web_bytes_by_category.png

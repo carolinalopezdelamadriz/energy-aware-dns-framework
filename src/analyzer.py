@@ -1,16 +1,13 @@
 import subprocess
 import re
 
-# tcpdump's default per-protocol summary line only prints a "length N" (or
-# DNS-style "(N)") field for protocols it can fully decode
+# tcpdump's prints a "length N" field for protocols it can DECODE
 
-# Encrypted QUIC application data shows up as "quic, protected" with no length at all, so
-# relying on that field silently drops every QUIC/HTTP-3 packet from the
-# byte count
+# encrypted QUIC application data --> "quic, protected" with no length at all
+# relying on that field drops every QUIC/HTTP-3 packet from the byte count
 
-# Ethernet frame length printed after "ethertype" (via -e)
-# is always present regardless of what's inside, so it's used for every
-# packet instead
+# ethernet frame length printed after ethertype (-e)
+# always present regardless of what's inside, so it's used for every packet instead
 
 FRAME_LENGTH_RE = re.compile(r"ethertype \S+ \([^)]*\), length (\d+):")
 TIMESTAMP_RE = re.compile(r"^(\d+\.\d+) ")
@@ -30,10 +27,10 @@ def _sum_frame_bytes(cmd: list[str]) -> int:
 
 def analyze_bytes_in_window(file_path, start_ts: float, end_ts: float) -> int:
     """Sums frame bytes for packets whose capture timestamp falls in
-    [start_ts, end_ts) - used to measure background noise during a window
-    where nothing related to the experiment should be happening yet (e.g.
+    [start_ts, end_ts). It is used to measure background noise during a window
+    where nothing related to the experiment should be happening yet (for example, 
     before Chrome has even opened), instead of only inferring contamination
-    statistically after the fact.
+    statistically after the fact
     """
     result = subprocess.run(["tcpdump", "-r", file_path, "-n", "-e", "-tt"], capture_output=True, text=True)
 
@@ -52,9 +49,8 @@ def analyze_bytes_in_window(file_path, start_ts: float, end_ts: float) -> int:
 def analyze_total_bytes(file_path, ports=None):
     cmd = ["tcpdump", "-r", file_path, "-n", "-e"]
     if ports:
-        # Scope the analysis to the browser's own local ports instead of every packet the interface-wide
-        # capture picked up, so unrelated background traffic on the machine
-        # doesn't get counted as part of this site's footprint
+        # focus on the analysis of browser's own local ports instead of every packet the interface-wide
+        # unrelated background traffic on the machine doesn't get counted as part of this site's footprint
         cmd.extend(" or ".join(f"port {port}" for port in ports).split())
     total = _sum_frame_bytes(cmd)
     print("Total bytes captured:", total)
