@@ -1,0 +1,87 @@
+{
+  "run_id": "20260713_112236",
+  "started_at": "2026-07-13T11:22:36+0200",
+  "python": "3.14.6 | packaged by Anaconda, Inc. | (main, Jun 18 2026, 21:19:57) [Clang 20.1.8 ]",
+  "platform": "macOS-14.2-arm64-arm-64bit-Mach-O",
+  "config": {
+    "sites_file": "data/sites_10_pilot.csv",
+    "protocols": [
+      "dns",
+      "doh",
+      "doq"
+    ],
+    "dns_repetitions": 5,
+    "web_repetitions": 1,
+    "interface": "en0",
+    "use_cdp": true,
+    "skip_dns": false,
+    "skip_web": false,
+    "doq_resolver": "quad9",
+    "headless": true,
+    "fresh_profile": true,
+    "site_delay": 5,
+    "connection_mode": "cold_start"
+  },
+  "sites": [
+    {
+      "label": "bbc",
+      "category": "news",
+      "domain": "bbc.com",
+      "url": "https://www.bbc.com"
+    },
+    {
+      "label": "santander",
+      "category": "banking",
+      "domain": "santander.com",
+      "url": "https://www.santander.com"
+    },
+    {
+      "label": "ine",
+      "category": "public_admin",
+      "domain": "ine.es",
+      "url": "https://www.ine.es"
+    },
+    {
+      "label": "wikipedia",
+      "category": "education",
+      "domain": "wikipedia.org",
+      "url": "https://www.wikipedia.org"
+    },
+    {
+      "label": "amazon",
+      "category": "ecommerce",
+      "domain": "amazon.com",
+      "url": "https://www.amazon.com"
+    },
+    {
+      "label": "github",
+      "category": "technology",
+      "domain": "github.com",
+      "url": "https://github.com"
+    },
+    {
+      "label": "twitter",
+      "category": "social_media",
+      "domain": "x.com",
+      "url": "https://x.com"
+    },
+    {
+      "label": "youtube",
+      "category": "streaming",
+      "domain": "youtube.com",
+      "url": "https://www.youtube.com"
+    },
+    {
+      "label": "webmd",
+      "category": "health",
+      "domain": "webmd.com",
+      "url": "https://www.webmd.com"
+    },
+    {
+      "label": "ietf",
+      "category": "standards",
+      "domain": "ietf.org",
+      "url": "https://www.ietf.org"
+    }
+  ]
+}

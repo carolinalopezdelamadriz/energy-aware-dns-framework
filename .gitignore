@@ -241,6 +241,16 @@ results/**/*
 !results/20260709_001914/analysis/
 !results/20260709_001914/analysis/**
 
+# Piloto de 10 sites: valida connection-mode, overhead breakdown y stats
+# de extremo a extremo antes del run masivo. Misma regla: sin pcap/keylog
+# ni perfiles JSON por visita
+!results/20260713_112236/
+!results/20260713_112236/dns_results.csv
+!results/20260713_112236/web_results.csv
+!results/20260713_112236/manifest.json
+!results/20260713_112236/analysis/
+!results/20260713_112236/analysis/**
+
 # Re-ignorar capturas grandes incluso dentro de las ejecuciones versionadas
 results/**/*.pcap
 
