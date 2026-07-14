@@ -4,7 +4,15 @@
   "web_rows": 10,
   "web_rows_flagged": 1,
   "profiles": 10,
-  "generated_plots": [
+  "generated_files": [
+    "dns_protocol_summary.csv",
+    "web_site_summary.csv",
+    "web_category_summary.csv",
+    "web_flagged_sites.csv",
+    "web_origin_summary.csv",
+    "web_origin_resources.csv",
+    "dns_privacy_cost_by_site.csv",
+    "dns_privacy_cost_by_category_cold_start.csv",
     "fig_dns_avg_bytes.png",
     "fig_dns_co2_by_protocol.png",
     "fig_overhead_breakdown.png",

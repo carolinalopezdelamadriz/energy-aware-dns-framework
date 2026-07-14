@@ -1,11 +1,23 @@
 import csv
 import platform
+import subprocess
 import sys
 import time
 from pathlib import Path
 from urllib.parse import urlparse
 
 from results import ensure_output_dir, write_json
+
+
+def _git_commit():
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=5,
+        )
+    except Exception:
+        return None
+    return result.stdout.strip() if result.returncode == 0 else None
 
 
 def _default_domain_from_url(url):
@@ -49,6 +61,7 @@ def write_manifest(output_dir, config, sites):
         "started_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "python": sys.version,
         "platform": platform.platform(),
+        "git_commit": _git_commit(),
         "config": config,
         "sites": sites,
     }

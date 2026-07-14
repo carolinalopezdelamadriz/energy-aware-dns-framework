@@ -5,7 +5,7 @@ import json
 import os
 from collections import defaultdict
 from pathlib import Path
-from statistics import mean, median, quantiles
+from statistics import mean, median, quantiles, stdev
 from urllib.parse import urlparse
 
 try:
@@ -136,6 +136,7 @@ def _summarize(rows: list[dict[str, str]], group_key: str, metrics: list[str]):
             item[f"median_{metric}"] = median(values) if values else 0.0
             item[f"min_{metric}"] = min(values) if values else 0.0
             item[f"max_{metric}"] = max(values) if values else 0.0
+            item[f"stdev_{metric}"] = stdev(values) if len(values) >= 2 else 0.0
             if len(values) >= 4:
                 q1, _, q3 = quantiles(sorted(values), n=4)
             else:
@@ -1133,62 +1134,252 @@ def _profile_resource_summary(profiles: list[dict[str, Any]]) -> list[dict[str, 
     return rows
 
 
+def _load_manifest(run_dir: Path) -> dict[str, Any]:
+    manifest_path = run_dir / "manifest.json"
+    if not manifest_path.exists():
+        return {}
+    with manifest_path.open(encoding="utf-8") as json_file:
+        return json.load(json_file)
+
+
+def _format_duration(seconds: float) -> str:
+    seconds = int(max(seconds, 0))
+    hours, remainder = divmod(seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours:
+        return f"{hours}h {minutes}min"
+    if minutes:
+        return f"{minutes}min {secs}s"
+    return f"{secs}s"
+
+
+def _run_timing(dns_rows: list[dict[str, str]], web_rows: list[dict[str, str]], num_sites: int) -> dict[str, Any] | None:
+    timestamps = [_float(row, "timestamp") for row in dns_rows + web_rows if _float(row, "timestamp") > 0]
+    if not timestamps:
+        return None
+    total_seconds = max(timestamps) - min(timestamps)
+    return {
+        "total_seconds": total_seconds,
+        "avg_seconds_per_site": (total_seconds / num_sites) if num_sites else 0.0,
+    }
+
+
+def _run_status(manifest: dict[str, Any], dns_rows: list[dict[str, str]], web_rows: list[dict[str, str]]) -> dict[str, Any]:
+    """Completion checks derived entirely from what's already in dns_results.csv/
+    web_results.csv - no new instrumentation needed, works retroactively on past
+    runs too. 'Applicable=False' means the stage wasn't part of this run
+    (e.g. --skip-web), not that it failed."""
+    config = manifest.get("config", {})
+    num_sites = len(manifest.get("sites", []))
+    protocols = config.get("protocols") or []
+
+    expected_dns = num_sites * len(protocols) if not config.get("skip_dns") else 0
+    expected_web = num_sites * (config.get("web_repetitions") or 1) if not config.get("skip_web") else 0
+
+    encrypted_dns_rows = [row for row in dns_rows if row.get("protocol") in ("doh", "doq")]
+    missing_dns_keys = sum(1 for row in encrypted_dns_rows if not (row.get("keylog_file") or "").strip())
+    missing_web_keys = sum(1 for row in web_rows if not (row.get("keylog_file") or "").strip())
+    missing_decryption = sum(1 for row in encrypted_dns_rows if not (row.get("handshake_bytes") or "").strip())
+    missing_co2 = sum(1 for row in dns_rows + web_rows if not (row.get("co2_kg") or "").strip())
+    dns_timeouts = sum(int(_float(row, "failed_queries")) for row in dns_rows)
+
+    checks = [
+        {
+            "label": "DNS captures completed",
+            "applicable": num_sites > 0 and not config.get("skip_dns"),
+            "ok": len(dns_rows) >= expected_dns,
+            "detail": f"{len(dns_rows)}/{expected_dns} experiments recorded",
+        },
+        {
+            "label": "Web captures completed",
+            "applicable": num_sites > 0 and not config.get("skip_web"),
+            "ok": len(web_rows) >= expected_web,
+            "detail": f"{len(web_rows)}/{expected_web} visits recorded",
+        },
+        {
+            "label": "TLS/QUIC keys exported",
+            "applicable": bool(encrypted_dns_rows or web_rows),
+            "ok": (missing_dns_keys + missing_web_keys) == 0,
+            "detail": f"{missing_dns_keys + missing_web_keys} experiment(s) missing a key log",
+        },
+        {
+            "label": "Traffic decryption completed",
+            "applicable": bool(encrypted_dns_rows),
+            "ok": missing_decryption == 0,
+            "detail": f"{missing_decryption} experiment(s) missing the overhead breakdown",
+        },
+        {
+            "label": "CO2 estimation completed",
+            "applicable": bool(dns_rows or web_rows),
+            "ok": missing_co2 == 0,
+            "detail": f"{missing_co2} row(s) missing a CO2 estimate",
+        },
+    ]
+
+    warnings = []
+    if expected_dns and len(dns_rows) < expected_dns:
+        warnings.append(f"{expected_dns - len(dns_rows)} DNS experiment(s) missing from dns_results.csv.")
+    if expected_web and len(web_rows) < expected_web:
+        warnings.append(f"{expected_web - len(web_rows)} website visit(s) missing from web_results.csv.")
+    if dns_timeouts:
+        warnings.append(f"{dns_timeouts} DNS quer{'y' if dns_timeouts == 1 else 'ies'} timed out.")
+    if missing_dns_keys + missing_web_keys:
+        warnings.append(f"{missing_dns_keys + missing_web_keys} experiment(s) missing a TLS/QUIC key log.")
+    if missing_decryption:
+        warnings.append(f"{missing_decryption} experiment(s) missing the decrypted overhead breakdown.")
+
+    return {"checks": checks, "warnings": warnings}
+
+
+def _automatic_observations(
+    dns_summary: list[dict[str, Any]],
+    web_category_summary: list[dict[str, Any]],
+) -> list[str]:
+    """Short, mechanically-derived highlights - not an interpretation, just
+    enough to know what happened without reading every table. The excluded-
+    sites count itself is a Run status warning, not repeated here."""
+    observations = []
+
+    if dns_summary:
+        dns_base = next((row for row in dns_summary if row["protocol"] == "dns"), None)
+        others = [row for row in dns_summary if row["protocol"] != "dns"]
+        if dns_base and dns_base["median_bytes"] and others:
+            worst = max(others, key=lambda row: row["median_bytes"])
+            ratio = worst["median_bytes"] / dns_base["median_bytes"]
+            observations.append(
+                f"{worst['protocol'].upper()} introduced the highest overhead vs classic DNS "
+                f"({ratio:.0f}x median bytes)."
+            )
+        handshake_heavy = [
+            row["protocol"].upper() for row in dns_summary
+            if (row.get("avg_handshake_bytes", 0.0) + row.get("avg_control_bytes", 0.0) + row.get("avg_payload_bytes", 0.0))
+            and row.get("avg_handshake_bytes", 0.0)
+            / (row.get("avg_handshake_bytes", 0.0) + row.get("avg_control_bytes", 0.0) + row.get("avg_payload_bytes", 0.0))
+            > 0.5
+        ]
+        if handshake_heavy:
+            observations.append(
+                f"Most {'/'.join(handshake_heavy)} traffic is connection setup (handshake), not the query itself."
+            )
+
+    if web_category_summary:
+        top = max(web_category_summary, key=lambda row: row["median_pcap_bytes"])
+        observations.append(f"{_category_label(top['category'])} generated the highest traffic per page.")
+
+    return observations
+
+
 def _markdown_report(
     run_dir: Path,
+    run_info: dict[str, Any],
     dns_summary: list[dict[str, Any]],
     clean_web_rows: list[dict[str, str]],
     flagged_web_rows: list[dict[str, str]],
     web_category_summary: list[dict[str, Any]],
     origin_summary: list[dict[str, Any]],
-    generated_plots: list[str],
+    generated_files: list[str],
     wilcoxon_tests: list[dict[str, Any]] | None = None,
     dns_privacy_cost_summary_by_mode: dict[str, list[dict[str, Any]]] | None = None,
 ) -> str:
+    manifest = run_info["manifest"]
+    config = manifest.get("config", {})
     lines = [
         "# Analysis summary",
         "",
         f"Run directory: `{run_dir}`",
-        "",
-        "Compact overview of protocol overhead, captured web traffic and estimated "
-        "carbon footprint.",
-        "",
-        "## DNS protocol comparison",
-        "",
     ]
 
-    if dns_summary:
-        lines.append(
-            "| Protocol | Samples | Median bytes (IQR) | Avg bytes | Median CO₂ (kg) | "
-            "Overhead vs DNS (median) | Avg bursts | Avg burst bytes |"
+    # --- Run configuration ---
+    lines.extend(["", "## Run configuration", ""])
+    started_at = manifest.get("started_at", "")
+    protocols = config.get("protocols") or []
+    mode_label = {"cold_start": "Cold start", "amortized": "Connection reuse (amortized)"}.get(
+        config.get("connection_mode", ""), config.get("connection_mode", "unknown")
+    )
+    lines.append(f"- Date: {started_at[:10] if started_at else 'unknown'}")
+    lines.append(f"- Resolver: {run_info.get('resolver_label') or 'unknown'}")
+    lines.append(f"- Websites tested: {run_info.get('sites_tested', 0)}")
+    lines.append(f"- Protocols: {', '.join(p.upper() for p in protocols) or 'none'}")
+    lines.append(f"- DNS mode: {mode_label}")
+    lines.append(
+        f"- Repetitions per website: {config.get('dns_repetitions', '?')} (DNS), "
+        f"{config.get('web_repetitions', '?')} (web)"
+    )
+    lines.append("- Capture: Selenium + CDP + tcpdump")
+    git_commit = manifest.get("git_commit")
+    lines.append(f"- Framework version: {git_commit if git_commit else 'not recorded for this run'}")
+    timing = run_info.get("timing")
+    if timing:
+        lines.append(f"- Total runtime: {_format_duration(timing['total_seconds'])}")
+        lines.append(f"- Avg time per website: {_format_duration(timing['avg_seconds_per_site'])}")
+
+    # --- Run status ---
+    lines.extend(["", "## Run status", ""])
+    for check in run_info["run_status"]["checks"]:
+        if not check["applicable"]:
+            lines.append(f"- {check['label']} (skipped)")
+        elif check["ok"]:
+            lines.append(f"✓ {check['label']}")
+        else:
+            lines.append(f"✗ {check['label']} — {check['detail']}")
+    warnings = list(run_info["run_status"]["warnings"])
+    if flagged_web_rows:
+        warnings.append(
+            f"{len(flagged_web_rows)} website{'s' if len(flagged_web_rows) != 1 else ''} excluded from web "
+            "statistics due to capture/data-quality problems (see Data quality assessment)."
         )
+    lines.append("")
+    if warnings:
+        lines.append("Warnings:")
+        for warning in warnings:
+            lines.append(f"- {warning}")
+    else:
+        lines.append("No warnings.")
+
+    # --- Automatic observations ---
+    lines.extend(["", "## Automatic observations", ""])
+    observations = run_info.get("observations") or []
+    if observations:
+        for observation in observations:
+            lines.append(f"- {observation}")
+    else:
+        lines.append("Nothing notable to report.")
+
+    # --- Methodological notes (centralized so individual sections don't repeat them) ---
+    lines.extend(
+        [
+            "",
+            "## Methodological notes",
+            "",
+            "- Median values are reported to reduce the impact of outliers; averages are kept for reference.",
+            "- Wilcoxon signed-rank test checks whether protocol differences are consistent across websites, "
+            "not just different on average.",
+            "- CO2 estimation is based on captured bytes (see `cfp.py` for the energy/grid model).",
+            "- Excluded websites are removed only from category-level statistics, not from per-site detail files.",
+            "- DNS privacy cost applies one typical overhead value to every domain a page resolves, since the "
+            "overhead comes mostly from the connection itself, not from which domain is being resolved.",
+            "- Packet bursts are consecutive packets sent in the same direction; kept for future website "
+            "fingerprinting analysis, not analyzed as an attack here.",
+        ]
+    )
+
+    # --- DNS protocol comparison ---
+    lines.extend(["", "## DNS protocol comparison", ""])
+    if dns_summary:
+        lines.extend(["### Traffic overhead", ""])
+        lines.append("| Protocol | Samples | Median bytes | Mean bytes | Min | Max | Std dev | Overhead vs DNS |")
         lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
         dns_base = next((row["median_bytes"] for row in dns_summary if row["protocol"] == "dns"), None)
         for row in dns_summary:
             ratio = (row["median_bytes"] / dns_base) if dns_base else 0
             lines.append(
                 f"| {row['protocol'].upper()} | {row['samples']} | "
-                f"{_format_median_iqr(row, 'bytes', _format_bytes)} | "
-                f"{_format_bytes(row['avg_bytes'])} | "
-                f"{row['median_co2_kg']:.6e} | {ratio:.1f}× | "
-                f"{row['avg_num_bursts']:.1f} | {_format_bytes(row['avg_avg_burst_bytes'])} |"
+                f"{_format_bytes(row['median_bytes'])} | {_format_bytes(row['avg_bytes'])} | "
+                f"{_format_bytes(row['min_bytes'])} | {_format_bytes(row['max_bytes'])} | "
+                f"{_format_bytes(row['stdev_bytes'])} | {ratio:.1f}× |"
             )
-        lines.extend(
-            [
-                "",
-                "Median is the headline statistic (a handful of extreme captures "
-                "shouldn't move the reported \"typical\" cost the way they can move a "
-                "mean); avg is kept alongside for reference, full avg/median/min/max/IQR "
-                "in `dns_protocol_summary.csv`.",
-                "",
-                "Burst = maximal run of consecutive packets in the same direction "
-                "(website-fingerprinting literature definition). Even where DoH/DoQ "
-                "encrypt the query content, the burst-size sequence on the wire "
-                "stays observable — see `fig_burst_patterns.png` and the per-visit "
-                "`dns_*_bursts.json` files for the full sequence per domain.",
-            ]
-        )
 
-        lines.extend(["", "### Cost per single query", ""])
+        lines.extend(["", "### Query cost", ""])
         lines.append("| Protocol | Median bytes/query | Median energy/query (kWh) | Median CO₂/query (kg) |")
         lines.append("| --- | ---: | ---: | ---: |")
         for row in dns_summary:
@@ -1197,20 +1388,9 @@ def _markdown_report(
                 f"{row.get('median_energy_kwh_per_query', 0.0):.3e} | "
                 f"{row.get('median_co2_kg_per_query', 0.0):.3e} |"
             )
-        lines.extend(
-            [
-                "",
-                "Same measurements as the table above, divided by each experiment's own "
-                "`repetitions` count - the cost of a single resolution instead of a batch "
-                "of 5. The ×ratios don't change either way (same repetitions count for all "
-                "three protocols in a given run), only these absolute per-query figures do. "
-                "At this scale CO₂ is a tiny fraction of a gram per query - the % of page "
-                "weight table below is the more communicable framing of the same result.",
-            ]
-        )
 
         if wilcoxon_tests:
-            lines.extend(["", "### Paired protocol comparison (Wilcoxon signed-rank)", ""])
+            lines.extend(["", "### Statistical validation", ""])
             lines.append("| Comparison | Site pairs | p-value | Effect size (rank-biserial r) |")
             lines.append("| --- | ---: | ---: | ---: |")
             for test in wilcoxon_tests:
@@ -1218,19 +1398,9 @@ def _markdown_report(
                     f"| {test['a'].upper()} vs {test['b'].upper()} | {test['n']} | "
                     f"{test['p_value']:.2e} | {test['effect_size_r']:.2f} |"
                 )
-            lines.extend(
-                [
-                    "",
-                    "Paired by site (same site measured under both protocols in this run), "
-                    "which is the right test here since bytes for the same domain under "
-                    "different protocols aren't independent samples. r close to ±1 means "
-                    "almost every site moved in the same direction; r near 0 would mean the "
-                    "protocols aren't consistently different site-by-site.",
-                ]
-            )
 
         if any(row.get("avg_handshake_bytes") or row.get("avg_payload_bytes") for row in dns_summary):
-            lines.extend(["", "### Overhead breakdown (handshake / control / payload)", ""])
+            lines.extend(["", "### Traffic composition", ""])
             lines.append("| Protocol | Handshake | Control | Payload | Handshake share |")
             lines.append("| --- | ---: | ---: | ---: | ---: |")
             for row in dns_summary:
@@ -1243,67 +1413,43 @@ def _markdown_report(
                     f"| {row['protocol'].upper()} | {_format_bytes(h)} | {_format_bytes(c)} | "
                     f"{_format_bytes(p)} | {share:.1f}% |"
                 )
+            lines.extend(["", "| Protocol | Avg bursts | Avg burst bytes |", "| --- | ---: | ---: |"])
+            for row in dns_summary:
+                lines.append(
+                    f"| {row['protocol'].upper()} | {row['avg_num_bursts']:.1f} | "
+                    f"{_format_bytes(row['avg_avg_burst_bytes'])} |"
+                )
             lines.extend(
                 [
                     "",
-                    "Decrypted from the pcap with the saved TLS/QUIC session keys (see "
-                    "`overhead_breakdown.py`), not just a total. DoQ's \"payload\" bucket "
-                    "mixes real response data with a small, undistinguished share of 1-RTT "
-                    "ACKs — see the module docstring for why that finer split isn't reliable "
-                    "here — and coalesced QUIC datagrams (handshake + 1-RTT packet in one "
-                    "UDP frame) are counted entirely as handshake.",
+                    "DoQ's payload figure includes a small amount of connection-maintenance traffic "
+                    "and should be interpreted as approximate.",
                 ]
             )
     else:
         lines.append("No DNS results found for this run.")
 
-    lines.extend(
-        [
-            "",
-            "## Web traffic by category",
-            "",
-            f"Excludes {len(flagged_web_rows)} flagged sites (see "
-            "\"Data quality\" section below). Median overhead is shown "
-            "instead of the mean because a handful of extreme values per "
-            "category can otherwise dominate an average computed from only "
-            "~10 sites — see `web_category_summary.csv` for the full "
-            "avg/median/min/max breakdown.",
-            "",
-        ]
-    )
+    # --- Web traffic analysis ---
+    lines.extend(["", "## Web traffic analysis", ""])
+    lines.extend(["### Traffic by category", ""])
     if web_category_summary:
-        lines.append(
-            "| Category | Sites | Median PCAP bytes | Median CDP bytes | Median overhead % | "
-            "Median CO₂ (kg) | Avg CO₂ (kg) |"
-        )
-        lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: |")
+        lines.append("| Category | Sites | Median PCAP bytes | Median CDP bytes | Median overhead % | Median CO₂ (kg) |")
+        lines.append("| --- | ---: | ---: | ---: | ---: | ---: |")
         for row in web_category_summary:
             lines.append(
                 f"| {_category_label(row['category'])} | {row['samples']} | "
                 f"{_format_bytes(row['median_pcap_bytes'])} | {_format_bytes(row['median_cdp_bytes'])} | "
-                f"{row['median_overhead_pct']:.1f}% | {row['median_co2_kg']:.6e} | {row['avg_co2_kg']:.6e} |"
+                f"{row['median_overhead_pct']:.1f}% | {row['median_co2_kg']:.6e} |"
             )
     else:
         lines.append("No web results found for this run.")
 
     if dns_privacy_cost_summary_by_mode:
-        lines.extend(
-            [
-                "",
-                "## DNS cost of privacy as a share of page weight",
-                "",
-                "Bridges the two halves of this framework into one number: for each page, "
-                "the number of distinct domains its resources needed resolved × this run's "
-                "own measured DoH-vs-classic-DNS bytes overhead per resolution, as a "
-                "percentage of that page's own PCAP bytes. Answers the research question "
-                "directly instead of leaving the DNS-side and web-side results to be "
-                "compared by eye.",
-            ]
-        )
+        lines.extend(["", "### DNS privacy cost relative to page size"])
         mode_titles = {"cold_start": "Cold-start (no connection reuse)", "amortized": "Amortized (connection reused)"}
         for mode in ("cold_start", "amortized"):
             summary_rows = dns_privacy_cost_summary_by_mode.get(mode)
-            lines.extend(["", f"### {mode_titles[mode]}", ""])
+            lines.extend(["", f"**{mode_titles[mode]}**", ""])
             if not summary_rows:
                 lines.append("No data for this mode in this run.")
                 continue
@@ -1315,59 +1461,44 @@ def _markdown_report(
                     f"{row['median_unique_domains_resolved']:.0f} | "
                     f"{row['median_dns_privacy_cost_pct_of_page']:.3f}% |"
                 )
-        lines.extend(
-            [
-                "",
-                "Per-site detail: `dns_privacy_cost_by_site.csv`. Uses a single run-wide "
-                "median per-resolution overhead (not a per-domain figure) - this run's own "
-                "handshake/control/payload breakdown above already shows that cost is "
-                "dominated by protocol/connection overhead, not by which specific domain is "
-                "being resolved, so one representative figure applied per domain is more "
-                "defensible than it would first appear.",
-            ]
-        )
 
     if clean_web_rows:
         lines.extend(
-            ["", "## Highest overhead sites (top {})".format(min(TOP_N_OUTLIERS, len(clean_web_rows))), ""]
+            ["", "### Top overhead cases", "", "| Site | Category | Overhead % | PCAP bytes | CDP bytes |",
+             "| --- | --- | ---: | ---: | ---: |"]
         )
-        lines.append("| Site | Category | Overhead % | PCAP bytes | CDP bytes |")
-        lines.append("| --- | --- | ---: | ---: | ---: |")
         for row in _top_rows(clean_web_rows, "overhead_pct"):
             lines.append(
                 f"| {row.get('site_label', '?')} | {_category_label(row.get('category', ''))} | "
                 f"{_float(row, 'overhead_pct'):.1f}% | {_format_bytes(_float(row, 'pcap_bytes'))} | "
                 f"{_format_bytes(_float(row, 'cdp_bytes'))} |"
             )
+        lines.extend(["", "Full per-site detail (including flagged sites): `web_site_summary.csv`."])
 
-        lines.extend(
-            ["", "## Highest carbon footprint sites (top {})".format(min(TOP_N_OUTLIERS, len(clean_web_rows))), ""]
-        )
-        lines.append("| Site | Category | CO₂ (kg) | PCAP bytes |")
-        lines.append("| --- | --- | ---: | ---: |")
+    # --- Carbon estimation ---
+    if clean_web_rows:
+        lines.extend(["", "## Carbon estimation", "", "| Site | Category | CO₂ (kg) | PCAP bytes |",
+                      "| --- | --- | ---: | ---: |"])
         for row in _top_rows(clean_web_rows, "co2_kg"):
             lines.append(
                 f"| {row.get('site_label', '?')} | {_category_label(row.get('category', ''))} | "
                 f"{_float(row, 'co2_kg'):.6e} | {_format_bytes(_float(row, 'pcap_bytes'))} |"
             )
 
-        lines.extend(["", "Full per-site detail (including flagged sites): `web_site_summary.csv`."])
-
-    lines.extend(["", "## Data quality — sites excluded from category stats and plots", ""])
+    # --- Data quality assessment ---
+    lines.extend(["", "## Data quality assessment", ""])
+    total_visits = len(clean_web_rows) + len(flagged_web_rows)
+    bot_blocked = [r for r in flagged_web_rows if r["data_quality_flag"] == FLAG_BOT_BLOCKED]
+    contamination = [r for r in flagged_web_rows if r["data_quality_flag"] == FLAG_CAPTURE_CONTAMINATION]
+    outliers = [r for r in flagged_web_rows if r["data_quality_flag"] == FLAG_STATISTICAL_OUTLIER]
+    lines.append("| Metric | Count |")
+    lines.append("| --- | ---: |")
+    lines.append(f"| Total websites | {total_visits} |")
+    lines.append(f"| Successful captures | {len(clean_web_rows)} |")
+    lines.append(f"| Bot-blocked / failed to load | {len(bot_blocked)} |")
+    lines.append(f"| Capture contamination | {len(contamination)} |")
+    lines.append(f"| Statistical outliers | {len(outliers)} |")
     if flagged_web_rows:
-        bot_blocked = [r for r in flagged_web_rows if r["data_quality_flag"] == FLAG_BOT_BLOCKED]
-        contamination = [r for r in flagged_web_rows if r["data_quality_flag"] == FLAG_CAPTURE_CONTAMINATION]
-        outliers = [r for r in flagged_web_rows if r["data_quality_flag"] == FLAG_STATISTICAL_OUTLIER]
-        total = len(clean_web_rows) + len(flagged_web_rows)
-        lines.append(
-            f"{len(flagged_web_rows)} of {total} site visits ({len(flagged_web_rows) / total * 100:.0f}%) "
-            f"were excluded from the tables and plots above, by likely cause: {len(bot_blocked)} likely "
-            f"bot-blocked or failed to load (CDP payload under {_format_bytes(MIN_PLAUSIBLE_CDP_BYTES)} "
-            f"with an extreme PCAP/CDP ratio), {len(contamination)} with direct evidence of capture "
-            "contamination (port-scoping failed for that visit, or background noise large relative to "
-            f"that visit's own PCAP), and {len(outliers)} statistically extreme outliers with no "
-            "identified cause. See docs/apuntes_personales/ISSUES_LOG.md, Issues 5/7/10/14."
-        )
         lines.append("")
         lines.append("| Site | Category | Reason | Overhead % | PCAP bytes | CDP bytes |")
         lines.append("| --- | --- | --- | ---: | ---: | ---: |")
@@ -1378,12 +1509,10 @@ def _markdown_report(
                 f"{_float(row, 'overhead_pct'):.1f}% | {_format_bytes(_float(row, 'pcap_bytes'))} | "
                 f"{_format_bytes(_float(row, 'cdp_bytes'))} |"
             )
-        lines.extend(["", "Full detail: `web_flagged_sites.csv`. Consider re-running these sites once the "
-                      "underlying cause (bot detection / background network noise) is addressed."])
-    else:
-        lines.append("No sites were flagged for this run.")
+        lines.extend(["", "Full detail: `web_flagged_sites.csv`. Worth re-running these sites later."])
 
-    lines.extend(["", "## Resource origin profile", ""])
+    # --- Resource origin analysis ---
+    lines.extend(["", "## Resource origin analysis", ""])
     if origin_summary:
         lines.append("| Origin class | Sites | Total CDP bytes | Share of CDP |")
         lines.append("| --- | ---: | ---: | ---: |")
@@ -1393,22 +1522,15 @@ def _markdown_report(
                 f"| {origin_label} | {row['samples']} | "
                 f"{_format_bytes(row['bytes'])} | {row['pct_of_cdp_bytes']:.1f}% |"
             )
-        lines.extend(
-            [
-                "",
-                "The tracker/ads figure is a high-confidence subset match (`TRACKER_DOMAINS`/"
-                "`TRACKER_KEYWORDS` in `browser.py`, precision chosen over recall - see "
-                "ISSUES_LOG.md Issue 16), not an exhaustive tracker list - treat it as a "
-                "lower bound on real tracking traffic, not a complete count.",
-            ]
-        )
+        lines.extend(["", "Tracker/ads traffic is a lower bound, not an exhaustive count."])
     else:
         lines.append("No CDP resource profiles found for this run.")
 
-    if generated_plots:
-        lines.extend(["", "## Generated figures", ""])
-        for plot in generated_plots:
-            lines.append(f"- `{plot}`")
+    # --- Generated files ---
+    if generated_files:
+        lines.extend(["", "## Generated files", ""])
+        for file_name in generated_files:
+            lines.append(f"- `{file_name}`")
 
     return "\n".join(lines) + "\n"
 
@@ -1421,6 +1543,10 @@ def analyze_run(run_dir: str | Path):
     web_rows = _read_csv(run_dir / "web_results.csv")
     profiles = _load_profiles(run_dir)
     dns_bursts = _load_bursts(run_dir, "dns_*_bursts.json")
+    manifest = _load_manifest(run_dir)
+
+    resolver_names = sorted({row.get("resolver_name", "") for row in dns_rows if row.get("resolver_name")})
+    sites_tested = len({row.get("site_label") for row in (dns_rows + web_rows) if row.get("site_label")})
 
     for row in dns_rows:
         repetitions = _float(row, "repetitions")
@@ -1437,6 +1563,9 @@ def analyze_run(run_dir: str | Path):
          "handshake_bytes", "control_bytes", "payload_bytes"],
     )
     wilcoxon_tests = _wilcoxon_dns_comparisons(dns_rows)
+
+    run_status = _run_status(manifest, dns_rows, web_rows)
+    timing = _run_timing(dns_rows, web_rows, sites_tested)
 
     flag_by_index = _flag_web_rows(web_rows)
     for i, row in enumerate(web_rows):
@@ -1485,17 +1614,34 @@ def analyze_run(run_dir: str | Path):
         if any(row["connection_mode"] == mode for row in dns_privacy_cost_clean)
     }
 
-    _write_csv(analysis_dir / "dns_protocol_summary.csv", dns_summary)
-    _write_csv(analysis_dir / "web_site_summary.csv", web_site_summary)
-    _write_csv(analysis_dir / "web_category_summary.csv", web_category_summary)
-    _write_csv(analysis_dir / "web_flagged_sites.csv", flagged_web_rows)
-    _write_csv(analysis_dir / "web_origin_summary.csv", origin_summary)
-    _write_csv(analysis_dir / "web_origin_resources.csv", origin_rows)
-    _write_csv(analysis_dir / "dns_privacy_cost_by_site.csv", dns_privacy_cost_rows)
+    generated_files = []
+    for file_name, rows in (
+        ("dns_protocol_summary.csv", dns_summary),
+        ("web_site_summary.csv", web_site_summary),
+        ("web_category_summary.csv", web_category_summary),
+        ("web_flagged_sites.csv", flagged_web_rows),
+        ("web_origin_summary.csv", origin_summary),
+        ("web_origin_resources.csv", origin_rows),
+        ("dns_privacy_cost_by_site.csv", dns_privacy_cost_rows),
+    ):
+        _write_csv(analysis_dir / file_name, rows)
+        if rows:
+            generated_files.append(file_name)
     for mode, summary_rows in dns_privacy_cost_summary_by_mode.items():
-        _write_csv(analysis_dir / f"dns_privacy_cost_by_category_{mode}.csv", summary_rows)
+        file_name = f"dns_privacy_cost_by_category_{mode}.csv"
+        _write_csv(analysis_dir / file_name, summary_rows)
+        if summary_rows:
+            generated_files.append(file_name)
 
-    generated_plots = []
+    observations = _automatic_observations(dns_summary, web_category_summary)
+    run_info = {
+        "manifest": manifest,
+        "resolver_label": ", ".join(name.title() for name in resolver_names),
+        "sites_tested": sites_tested,
+        "run_status": run_status,
+        "observations": observations,
+        "timing": timing,
+    }
 
     plot_specs = [
         (
@@ -1566,16 +1712,17 @@ def analyze_run(run_dir: str | Path):
 
     for plot_name, plot_fn in plot_specs:
         if plot_fn():
-            generated_plots.append(plot_name)
+            generated_files.append(plot_name)
 
     report = _markdown_report(
         run_dir,
+        run_info=run_info,
         dns_summary=dns_summary,
         clean_web_rows=clean_web_rows,
         flagged_web_rows=flagged_web_rows,
         web_category_summary=web_category_summary,
         origin_summary=origin_summary,
-        generated_plots=generated_plots,
+        generated_files=generated_files,
         wilcoxon_tests=wilcoxon_tests,
         dns_privacy_cost_summary_by_mode=dns_privacy_cost_summary_by_mode,
     )
@@ -1590,7 +1737,7 @@ def analyze_run(run_dir: str | Path):
             "web_rows": len(web_rows),
             "web_rows_flagged": len(flagged_web_rows),
             "profiles": len(profiles),
-            "generated_plots": generated_plots,
+            "generated_files": generated_files,
         },
     )
 
