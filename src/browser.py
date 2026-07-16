@@ -113,6 +113,14 @@ def _build_chrome_driver(headless: bool = False, fresh_profile: bool = False, ke
     options.add_argument("--no-first-run")
     options.add_argument("--no-default-browser-check")
     options.add_argument("--disable-search-engine-choice-screen")
+    # --disable-component-update above doesn't cover this one: newer Chrome
+    # (150.x here) re-downloads its Optimization Guide model on every fresh
+    # profile - confirmed via a decrypted capture where a single request to
+    # optimizationguide-pa.googleapis.com was 89% of the whole visit's bytes
+    options.add_argument(
+        "--disable-features=OptimizationHints,OptimizationHintsFetching,"
+        "OptimizationTargetPrediction,OptimizationGuideModelDownloading"
+    )
 
     if fresh_profile:
         # Temporary profile directory so each visit starts without cache or

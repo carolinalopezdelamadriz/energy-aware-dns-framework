@@ -251,6 +251,17 @@ results/**/*
 !results/20260713_112236/analysis/
 !results/20260713_112236/analysis/**
 
+# Piloto de 10 sites: valida el fix de la flag --disable-features de Chrome
+# (descarga de fondo de Optimization Guide contaminando el PCAP web) en la
+# máquina nueva. results/20260716_010640 (el run de 100 sitios capturado
+# antes del fix) se queda fuera a propósito, no es citable.
+!results/20260716_222204/
+!results/20260716_222204/dns_results.csv
+!results/20260716_222204/web_results.csv
+!results/20260716_222204/manifest.json
+!results/20260716_222204/analysis/
+!results/20260716_222204/analysis/**
+
 # Re-ignorar capturas grandes incluso dentro de las ejecuciones versionadas
 results/**/*.pcap
 
