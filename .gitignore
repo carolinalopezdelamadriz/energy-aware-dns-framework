@@ -262,6 +262,15 @@ results/**/*
 !results/20260716_222204/analysis/
 !results/20260716_222204/analysis/**
 
+# Run masivo definitivo (100 sites x 3 protocolos), post-fix de Optimization
+# Guide - reemplaza a 20260709_001914 como referencia citable
+!results/20260717_004628/
+!results/20260717_004628/dns_results.csv
+!results/20260717_004628/web_results.csv
+!results/20260717_004628/manifest.json
+!results/20260717_004628/analysis/
+!results/20260717_004628/analysis/**
+
 # Re-ignorar capturas grandes incluso dentro de las ejecuciones versionadas
 results/**/*.pcap
 
