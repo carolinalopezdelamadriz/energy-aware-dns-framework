@@ -6,11 +6,14 @@
   "profiles": 100,
   "generated_files": [
     "dns_protocol_summary.csv",
+    "dns_flagged_experiments.csv",
     "web_site_summary.csv",
     "web_category_summary.csv",
     "web_flagged_sites.csv",
     "web_origin_summary.csv",
     "web_origin_resources.csv",
+    "web_resource_type_summary.csv",
+    "web_resource_type_resources.csv",
     "dns_privacy_cost_by_site.csv",
     "dns_privacy_cost_by_category_cold_start.csv",
     "fig_dns_avg_bytes.png",
@@ -21,6 +24,7 @@
     "fig_web_bytes_by_category.png",
     "fig_web_overhead_by_category.png",
     "fig_web_origin_bytes.png",
+    "fig_web_resource_types.png",
     "fig_cfp_by_category.png",
     "fig_dashboard.png"
   ]

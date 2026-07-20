@@ -31,6 +31,18 @@ ORIGIN_COLORS = {
     "unknown_origin": "#78909C",
 }
 
+RESOURCE_TYPE_COLORS = {
+    "Document": "#2E7D32",
+    "Script": "#C62828",
+    "Stylesheet": "#6A1B9A",
+    "Image": "#1565C0",
+    "Font": "#F9A825",
+    "XHR": "#00838F",
+    "Fetch": "#5D4037",
+    "Media": "#AD1457",
+    "Other": "#78909C",
+}
+
 ORIGIN_LABELS = {
     "first_party": "First party",
     "third_party": "Third party",
@@ -956,6 +968,93 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
     return True
 
 
+def _plot_resource_type_distribution(path: Path, type_summary: list[dict[str, Any]]) -> bool:
+    """Which kind of resource (images, scripts, ...) drives page weight - the
+    "distinguir entre HTML, Imagenes, Scripts" breakdown from the plan,
+    complementing the by-origin view above (who served it, not what it is).
+    """
+    if not type_summary:
+        return False
+
+    try:
+        plt = _setup_matplotlib(path.parent)
+        from matplotlib.ticker import MaxNLocator
+    except ImportError:
+        return False
+
+    labels = [row["resource_type"] for row in type_summary]
+    values = [row["bytes"] for row in type_summary]
+    colors = [RESOURCE_TYPE_COLORS.get(row["resource_type"], "#78909C") for row in type_summary]
+
+    total = sum(values) or 1
+    xmax = max(values) * 1.28 if values else 1
+
+    fig, (ax_bar, ax_pie) = plt.subplots(
+        2,
+        1,
+        figsize=(9.5, 7.5),
+        gridspec_kw={"height_ratios": [1.1, 1], "hspace": 0.55},
+    )
+
+    y_pos = range(len(labels))
+    bars = ax_bar.barh(
+        list(y_pos),
+        values,
+        color=colors,
+        edgecolor="white",
+        linewidth=1.2,
+        height=0.55,
+    )
+    ax_bar.set_yticks(list(y_pos))
+    ax_bar.set_yticklabels(labels, fontsize=11)
+    ax_bar.invert_yaxis()
+    ax_bar.set_xlabel("Total CDP bytes")
+    ax_bar.set_title("CDP traffic by resource type", pad=14, fontsize=13, fontweight="600")
+    ax_bar.set_xlim(0, xmax)
+    ax_bar.xaxis.set_major_locator(MaxNLocator(nbins=5))
+    ax_bar.xaxis.set_major_formatter(
+        plt.FuncFormatter(lambda value, _pos: _format_bytes(value, precision=0))
+    )
+    ax_bar.tick_params(axis="x", labelsize=10, rotation=0)
+    ax_bar.grid(axis="x", linestyle="--", alpha=0.9)
+    ax_bar.spines["top"].set_visible(False)
+    ax_bar.spines["right"].set_visible(False)
+
+    for bar, value in zip(bars, values):
+        ax_bar.text(
+            bar.get_width() + xmax * 0.015,
+            bar.get_y() + bar.get_height() / 2,
+            f"{_format_bytes(value)} ({value / total * 100:.0f}%)",
+            va="center",
+            fontsize=9,
+            color="#37474F",
+        )
+
+    _wedges, _texts, autotexts = ax_pie.pie(
+        values,
+        colors=colors,
+        startangle=90,
+        counterclock=False,
+        autopct=lambda pct: f"{pct:.0f}%" if pct >= 4 else "",
+        pctdistance=0.72,
+        wedgeprops={"linewidth": 1.2, "edgecolor": "white"},
+        textprops={"fontsize": 10, "color": "#37474F", "fontweight": "600"},
+    )
+    ax_pie.legend(
+        _wedges,
+        [f"{label} ({row['pct_of_cdp_bytes']:.0f}%)" for label, row in zip(labels, type_summary)],
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        frameon=False,
+        fontsize=10,
+    )
+    ax_pie.set_title("Percentage breakdown", pad=12, fontsize=12)
+
+    fig.subplots_adjust(left=0.14, right=0.78, top=0.96, bottom=0.06, hspace=0.55)
+    _save_figure(plt, path)
+    return True
+
+
 def _plot_run_dashboard(
     path: Path,
     run_id: str,
@@ -1134,6 +1233,55 @@ def _profile_resource_summary(profiles: list[dict[str, Any]]) -> list[dict[str, 
     return rows
 
 
+def _profile_resource_type_summary(profiles: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Same per-visit shape as _profile_resource_summary, but by CDP resource
+    type (Document/Script/Image/...) instead of origin - which kind of
+    content drives page weight, not who served it."""
+    rows = []
+    for profile in profiles:
+        total = float(profile.get("total_bytes") or 0)
+        for resource_type, byte_count in profile.get("by_type", {}).items():
+            rows.append(
+                {
+                    "site_label": profile.get("site_label", ""),
+                    "category": profile.get("category", ""),
+                    "url": profile.get("url", ""),
+                    "resource_type": resource_type,
+                    "bytes": byte_count,
+                    "pct_of_cdp_bytes": (byte_count / total * 100) if total else 0,
+                }
+            )
+    return rows
+
+
+def _pooled_resource_type_summary(type_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Sum CDP bytes by resource type across all sites, ranked by weight."""
+    totals: dict[str, float] = defaultdict(float)
+    sites_by_type: dict[str, set[str]] = defaultdict(set)
+
+    for row in type_rows:
+        resource_type = row.get("resource_type") or "Other"
+        byte_count = float(row.get("bytes") or 0)
+        totals[resource_type] += byte_count
+        site = row.get("site_label") or ""
+        if site:
+            sites_by_type[resource_type].add(site)
+
+    grand_total = sum(totals.values()) or 1.0
+    summary = []
+    for resource_type in sorted(totals.keys(), key=lambda t: totals[t], reverse=True):
+        byte_total = totals[resource_type]
+        summary.append(
+            {
+                "resource_type": resource_type,
+                "bytes": byte_total,
+                "pct_of_cdp_bytes": byte_total / grand_total * 100,
+                "samples": len(sites_by_type[resource_type]),
+            }
+        )
+    return summary
+
+
 def _load_manifest(run_dir: Path) -> dict[str, Any]:
     manifest_path = run_dir / "manifest.json"
     if not manifest_path.exists():
@@ -1273,10 +1421,12 @@ def _markdown_report(
     run_dir: Path,
     run_info: dict[str, Any],
     dns_summary: list[dict[str, Any]],
+    flagged_dns_rows: list[dict[str, str]],
     clean_web_rows: list[dict[str, str]],
     flagged_web_rows: list[dict[str, str]],
     web_category_summary: list[dict[str, Any]],
     origin_summary: list[dict[str, Any]],
+    type_summary: list[dict[str, Any]],
     generated_files: list[str],
     wilcoxon_tests: list[dict[str, Any]] | None = None,
     dns_privacy_cost_summary_by_mode: dict[str, list[dict[str, Any]]] | None = None,
@@ -1323,6 +1473,11 @@ def _markdown_report(
         else:
             lines.append(f"✗ {check['label']} — {check['detail']}")
     warnings = list(run_info["run_status"]["warnings"])
+    if flagged_dns_rows:
+        warnings.append(
+            f"{len(flagged_dns_rows)} DNS experiment(s) excluded from the protocol comparison/tests "
+            "because every repetition failed (see DNS protocol comparison > Data quality)."
+        )
     if flagged_web_rows:
         warnings.append(
             f"{len(flagged_web_rows)} website{'s' if len(flagged_web_rows) != 1 else ''} excluded from web "
@@ -1426,6 +1581,24 @@ def _markdown_report(
                     "and should be interpreted as approximate.",
                 ]
             )
+
+        if flagged_dns_rows:
+            lines.extend(["", "### Data quality", ""])
+            lines.append(
+                f"{len(flagged_dns_rows)} experiment(s) had every repetition fail and are excluded from "
+                "the table/tests above - the bytes still shown come from failed connection attempts, "
+                "not a successful resolution."
+            )
+            lines.extend(
+                ["", "| Site | Protocol | Failed / Repetitions | Bytes (excluded) |", "| --- | --- | ---: | ---: |"]
+            )
+            for row in flagged_dns_rows:
+                lines.append(
+                    f"| {row.get('site_label', '?')} | {row.get('protocol', '?').upper()} | "
+                    f"{row.get('failed_queries', '?')}/{row.get('repetitions', '?')} | "
+                    f"{_format_bytes(_float(row, 'bytes'))} |"
+                )
+            lines.extend(["", "Full detail: `dns_flagged_experiments.csv` (rows stay in `dns_results.csv` too)."])
     else:
         lines.append("No DNS results found for this run.")
 
@@ -1526,6 +1699,22 @@ def _markdown_report(
     else:
         lines.append("No CDP resource profiles found for this run.")
 
+    # --- Resource type analysis ---
+    lines.extend(["", "## Resource type analysis", ""])
+    if type_summary:
+        lines.append("| Resource type | Sites | Total CDP bytes | Share of CDP |")
+        lines.append("| --- | ---: | ---: | ---: |")
+        for row in type_summary:
+            lines.append(
+                f"| {row['resource_type']} | {row['samples']} | "
+                f"{_format_bytes(row['bytes'])} | {row['pct_of_cdp_bytes']:.1f}% |"
+            )
+        lines.extend(
+            ["", "Which kind of content drives page weight, complementing who served it (origin, above)."]
+        )
+    else:
+        lines.append("No CDP resource profiles found for this run.")
+
     # --- Generated files ---
     if generated_files:
         lines.extend(["", "## Generated files", ""])
@@ -1555,14 +1744,21 @@ def analyze_run(run_dir: str | Path):
             row["energy_kwh_per_query"] = _float(row, "energy_kwh") / repetitions
             row["co2_kg_per_query"] = _float(row, "co2_kg") / repetitions
 
+    # An experiment where every repetition failed still leaves bytes in the
+    # pcap (failed connection attempts, not a successful resolution - see
+    # dns_experiment.py's own warning) and shouldn't count the same as a
+    # clean measurement in the protocol comparison/tests below.
+    flagged_dns_rows = [row for row in dns_rows if _float(row, "failed_queries") > 0]
+    clean_dns_rows = [row for row in dns_rows if _float(row, "failed_queries") <= 0]
+
     dns_summary = _summarize(
-        dns_rows,
+        clean_dns_rows,
         "protocol",
         ["bytes", "energy_kwh", "co2_kg", "bytes_per_query", "energy_kwh_per_query",
          "co2_kg_per_query", "num_bursts", "avg_burst_bytes",
          "handshake_bytes", "control_bytes", "payload_bytes"],
     )
-    wilcoxon_tests = _wilcoxon_dns_comparisons(dns_rows)
+    wilcoxon_tests = _wilcoxon_dns_comparisons(clean_dns_rows)
 
     run_status = _run_status(manifest, dns_rows, web_rows)
     timing = _run_timing(dns_rows, web_rows, sites_tested)
@@ -1597,9 +1793,11 @@ def analyze_run(run_dir: str | Path):
     clean_profiles = [p for p in profiles if p.get("profile_file") not in flagged_profile_files]
     origin_rows = _profile_resource_summary(clean_profiles)
     origin_summary = _pooled_origin_summary(origin_rows)
+    type_rows = _profile_resource_type_summary(clean_profiles)
+    type_summary = _pooled_resource_type_summary(type_rows)
 
     profiles_by_file = {p.get("profile_file"): p for p in profiles}
-    dns_privacy_cost_rows = _dns_privacy_cost_rows(web_rows, profiles_by_file, dns_rows)
+    dns_privacy_cost_rows = _dns_privacy_cost_rows(web_rows, profiles_by_file, clean_dns_rows)
     dns_privacy_cost_clean = [row for row in dns_privacy_cost_rows if not row["data_quality_flag"]]
     # _summarize groups by a single key, but this metric also varies by
     # connection_mode - re-split per mode instead of extending _summarize
@@ -1617,11 +1815,14 @@ def analyze_run(run_dir: str | Path):
     generated_files = []
     for file_name, rows in (
         ("dns_protocol_summary.csv", dns_summary),
+        ("dns_flagged_experiments.csv", flagged_dns_rows),
         ("web_site_summary.csv", web_site_summary),
         ("web_category_summary.csv", web_category_summary),
         ("web_flagged_sites.csv", flagged_web_rows),
         ("web_origin_summary.csv", origin_summary),
         ("web_origin_resources.csv", origin_rows),
+        ("web_resource_type_summary.csv", type_summary),
+        ("web_resource_type_resources.csv", type_rows),
         ("dns_privacy_cost_by_site.csv", dns_privacy_cost_rows),
     ):
         _write_csv(analysis_dir / file_name, rows)
@@ -1693,6 +1894,12 @@ def analyze_run(run_dir: str | Path):
             ),
         ),
         (
+            "fig_web_resource_types.png",
+            lambda: _plot_resource_type_distribution(
+                analysis_dir / "fig_web_resource_types.png", type_summary
+            ),
+        ),
+        (
             "fig_cfp_by_category.png",
             lambda: _plot_cfp_by_category(
                 analysis_dir / "fig_cfp_by_category.png", web_category_summary
@@ -1718,10 +1925,12 @@ def analyze_run(run_dir: str | Path):
         run_dir,
         run_info=run_info,
         dns_summary=dns_summary,
+        flagged_dns_rows=flagged_dns_rows,
         clean_web_rows=clean_web_rows,
         flagged_web_rows=flagged_web_rows,
         web_category_summary=web_category_summary,
         origin_summary=origin_summary,
+        type_summary=type_summary,
         generated_files=generated_files,
         wilcoxon_tests=wilcoxon_tests,
         dns_privacy_cost_summary_by_mode=dns_privacy_cost_summary_by_mode,

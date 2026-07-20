@@ -25,6 +25,7 @@ Run directory: `results/20260717_004628`
 
 Warnings:
 - 5 DNS queries timed out.
+- 1 DNS experiment(s) excluded from the protocol comparison/tests because every repetition failed (see DNS protocol comparison > Data quality).
 - 13 websites excluded from web statistics due to capture/data-quality problems (see Data quality assessment).
 
 ## Automatic observations
@@ -50,7 +51,7 @@ Warnings:
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | DNS | 100 | 1.1 KB | 1.1 KB | 818 B | 1.9 KB | 118 B | 1.0× |
 | DOH | 100 | 41.6 KB | 42.1 KB | 37.8 KB | 60.1 KB | 3.7 KB | 38.4× |
-| DOQ | 100 | 41.4 KB | 46.0 KB | 41.0 KB | 93.9 KB | 13.1 KB | 38.2× |
+| DOQ | 99 | 41.4 KB | 45.6 KB | 41.0 KB | 93.9 KB | 12.6 KB | 38.2× |
 
 ### Query cost
 
@@ -58,14 +59,14 @@ Warnings:
 | --- | ---: | ---: | ---: |
 | DNS | 222 B | 1.308e-08 | 3.702e-09 |
 | DOH | 8.3 KB | 5.029e-07 | 1.423e-07 |
-| DOQ | 8.3 KB | 5.002e-07 | 1.415e-07 |
+| DOQ | 8.3 KB | 5.001e-07 | 1.415e-07 |
 
 ### Statistical validation
 
 | Comparison | Site pairs | p-value | Effect size (rank-biserial r) |
 | --- | ---: | ---: | ---: |
 | DNS vs DOH | 100 | 3.90e-18 | -1.00 |
-| DOH vs DOQ | 100 | 8.50e-02 | -0.20 |
+| DOH vs DOQ | 99 | 1.15e-01 | -0.18 |
 
 ### Traffic composition
 
@@ -73,15 +74,25 @@ Warnings:
 | --- | ---: | ---: | ---: | ---: |
 | DNS | 0 B | 424 B | 687 B | 0.0% |
 | DOH | 32.5 KB | 4.5 KB | 5.1 KB | 77.2% |
-| DOQ | 43.0 KB | 0 B | 3.0 KB | 93.5% |
+| DOQ | 42.6 KB | 0 B | 2.9 KB | 93.6% |
 
 | Protocol | Avg bursts | Avg burst bytes |
 | --- | ---: | ---: |
 | DNS | 9.9 | 122 B |
 | DOH | 60.2 | 722 B |
-| DOQ | 43.5 | 1.1 KB |
+| DOQ | 43.2 | 1.1 KB |
 
 DoQ's payload figure includes a small amount of connection-maintenance traffic and should be interpreted as approximate.
+
+### Data quality
+
+1 experiment(s) had every repetition fail and are excluded from the table/tests above - the bytes still shown come from failed connection attempts, not a successful resolution.
+
+| Site | Protocol | Failed / Repetitions | Bytes (excluded) |
+| --- | --- | ---: | ---: |
+| medlineplus | DOQ | 5/5 | 84.4 KB |
+
+Full detail: `dns_flagged_experiments.csv` (rows stay in `dns_results.csv` too).
 
 ## Web traffic analysis
 
@@ -191,14 +202,36 @@ Full detail: `web_flagged_sites.csv`. Worth re-running these sites later.
 
 Tracker/ads traffic is a lower bound, not an exhaustive count.
 
+## Resource type analysis
+
+| Resource type | Sites | Total CDP bytes | Share of CDP |
+| --- | ---: | ---: | ---: |
+| Image | 83 | 129.3 MB | 36.0% |
+| Script | 84 | 109.6 MB | 30.5% |
+| Media | 13 | 69.8 MB | 19.4% |
+| Font | 79 | 18.7 MB | 5.2% |
+| Stylesheet | 83 | 10.4 MB | 2.9% |
+| Document | 85 | 6.7 MB | 1.9% |
+| Fetch | 59 | 6.5 MB | 1.8% |
+| XHR | 68 | 5.5 MB | 1.5% |
+| Other | 85 | 2.5 MB | 0.7% |
+| Ping | 28 | 64.1 KB | 0.0% |
+| Manifest | 21 | 39.4 KB | 0.0% |
+| Preflight | 32 | 0 B | 0.0% |
+
+Which kind of content drives page weight, complementing who served it (origin, above).
+
 ## Generated files
 
 - `dns_protocol_summary.csv`
+- `dns_flagged_experiments.csv`
 - `web_site_summary.csv`
 - `web_category_summary.csv`
 - `web_flagged_sites.csv`
 - `web_origin_summary.csv`
 - `web_origin_resources.csv`
+- `web_resource_type_summary.csv`
+- `web_resource_type_resources.csv`
 - `dns_privacy_cost_by_site.csv`
 - `dns_privacy_cost_by_category_cold_start.csv`
 - `fig_dns_avg_bytes.png`
@@ -209,5 +242,6 @@ Tracker/ads traffic is a lower bound, not an exhaustive count.
 - `fig_web_bytes_by_category.png`
 - `fig_web_overhead_by_category.png`
 - `fig_web_origin_bytes.png`
+- `fig_web_resource_types.png`
 - `fig_cfp_by_category.png`
 - `fig_dashboard.png`
