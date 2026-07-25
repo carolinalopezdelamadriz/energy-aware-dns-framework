@@ -1420,7 +1420,7 @@ def _automatic_observations(
 def _markdown_report(
     run_dir: Path,
     run_info: dict[str, Any],
-    dns_summary: list[dict[str, Any]],
+    dns_summary_by_mode: dict[str, list[dict[str, Any]]],
     flagged_dns_rows: list[dict[str, str]],
     clean_web_rows: list[dict[str, str]],
     flagged_web_rows: list[dict[str, str]],
@@ -1428,7 +1428,7 @@ def _markdown_report(
     origin_summary: list[dict[str, Any]],
     type_summary: list[dict[str, Any]],
     generated_files: list[str],
-    wilcoxon_tests: list[dict[str, Any]] | None = None,
+    wilcoxon_tests_by_mode: dict[str, list[dict[str, Any]]] | None = None,
     dns_privacy_cost_summary_by_mode: dict[str, list[dict[str, Any]]] | None = None,
 ) -> str:
     manifest = run_info["manifest"]
@@ -1519,68 +1519,83 @@ def _markdown_report(
     )
 
     # --- DNS protocol comparison ---
-    lines.extend(["", "## DNS protocol comparison", ""])
-    if dns_summary:
-        lines.extend(["### Traffic overhead", ""])
-        lines.append("| Protocol | Samples | Median bytes | Mean bytes | Min | Max | Std dev | Overhead vs DNS |")
-        lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
-        dns_base = next((row["median_bytes"] for row in dns_summary if row["protocol"] == "dns"), None)
-        for row in dns_summary:
-            ratio = (row["median_bytes"] / dns_base) if dns_base else 0
-            lines.append(
-                f"| {row['protocol'].upper()} | {row['samples']} | "
-                f"{_format_bytes(row['median_bytes'])} | {_format_bytes(row['avg_bytes'])} | "
-                f"{_format_bytes(row['min_bytes'])} | {_format_bytes(row['max_bytes'])} | "
-                f"{_format_bytes(row['stdev_bytes'])} | {ratio:.1f}× |"
-            )
+    lines.extend(["", "## DNS protocol comparison"])
+    if dns_summary_by_mode:
+        wilcoxon_tests_by_mode = wilcoxon_tests_by_mode or {}
+        mode_titles = {"cold_start": "Cold-start (no connection reuse)", "amortized": "Amortized (connection reused)"}
+        # Only wrap each mode in its own heading when both are actually present -
+        # a single-mode run (e.g. the pre-existing cold_start-only runs) keeps the
+        # original, unnested heading levels.
+        multi_mode = len(dns_summary_by_mode) > 1
+        for mode in ("cold_start", "amortized"):
+            dns_summary = dns_summary_by_mode.get(mode)
+            if not dns_summary:
+                continue
+            wilcoxon_tests = wilcoxon_tests_by_mode.get(mode) or []
+            h = "####" if multi_mode else "###"
+            if multi_mode:
+                lines.extend(["", f"### {mode_titles[mode]}"])
 
-        lines.extend(["", "### Query cost", ""])
-        lines.append("| Protocol | Median bytes/query | Median energy/query (kWh) | Median CO₂/query (kg) |")
-        lines.append("| --- | ---: | ---: | ---: |")
-        for row in dns_summary:
-            lines.append(
-                f"| {row['protocol'].upper()} | {_format_bytes(row.get('median_bytes_per_query', 0.0))} | "
-                f"{row.get('median_energy_kwh_per_query', 0.0):.3e} | "
-                f"{row.get('median_co2_kg_per_query', 0.0):.3e} |"
-            )
+            lines.extend(["", f"{h} Traffic overhead", ""])
+            lines.append("| Protocol | Samples | Median bytes | Mean bytes | Min | Max | Std dev | Overhead vs DNS |")
+            lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+            dns_base = next((row["median_bytes"] for row in dns_summary if row["protocol"] == "dns"), None)
+            for row in dns_summary:
+                ratio = (row["median_bytes"] / dns_base) if dns_base else 0
+                lines.append(
+                    f"| {row['protocol'].upper()} | {row['samples']} | "
+                    f"{_format_bytes(row['median_bytes'])} | {_format_bytes(row['avg_bytes'])} | "
+                    f"{_format_bytes(row['min_bytes'])} | {_format_bytes(row['max_bytes'])} | "
+                    f"{_format_bytes(row['stdev_bytes'])} | {ratio:.1f}× |"
+                )
 
-        if wilcoxon_tests:
-            lines.extend(["", "### Statistical validation", ""])
-            lines.append("| Comparison | Site pairs | p-value | Effect size (rank-biserial r) |")
+            lines.extend(["", f"{h} Query cost", ""])
+            lines.append("| Protocol | Median bytes/query | Median energy/query (kWh) | Median CO₂/query (kg) |")
             lines.append("| --- | ---: | ---: | ---: |")
-            for test in wilcoxon_tests:
+            for row in dns_summary:
                 lines.append(
-                    f"| {test['a'].upper()} vs {test['b'].upper()} | {test['n']} | "
-                    f"{test['p_value']:.2e} | {test['effect_size_r']:.2f} |"
+                    f"| {row['protocol'].upper()} | {_format_bytes(row.get('median_bytes_per_query', 0.0))} | "
+                    f"{row.get('median_energy_kwh_per_query', 0.0):.3e} | "
+                    f"{row.get('median_co2_kg_per_query', 0.0):.3e} |"
                 )
 
-        if any(row.get("avg_handshake_bytes") or row.get("avg_payload_bytes") for row in dns_summary):
-            lines.extend(["", "### Traffic composition", ""])
-            lines.append("| Protocol | Handshake | Control | Payload | Handshake share |")
-            lines.append("| --- | ---: | ---: | ---: | ---: |")
-            for row in dns_summary:
-                h = row.get("avg_handshake_bytes", 0.0)
-                c = row.get("avg_control_bytes", 0.0)
-                p = row.get("avg_payload_bytes", 0.0)
-                total = h + c + p
-                share = (h / total * 100) if total else 0
-                lines.append(
-                    f"| {row['protocol'].upper()} | {_format_bytes(h)} | {_format_bytes(c)} | "
-                    f"{_format_bytes(p)} | {share:.1f}% |"
+            if wilcoxon_tests:
+                lines.extend(["", f"{h} Statistical validation", ""])
+                lines.append("| Comparison | Site pairs | p-value | Effect size (rank-biserial r) |")
+                lines.append("| --- | ---: | ---: | ---: |")
+                for test in wilcoxon_tests:
+                    lines.append(
+                        f"| {test['a'].upper()} vs {test['b'].upper()} | {test['n']} | "
+                        f"{test['p_value']:.2e} | {test['effect_size_r']:.2f} |"
+                    )
+
+            if any(row.get("avg_handshake_bytes") or row.get("avg_payload_bytes") for row in dns_summary):
+                lines.extend(["", f"{h} Traffic composition", ""])
+                lines.append("| Protocol | Handshake | Control | Payload | Handshake share |")
+                lines.append("| --- | ---: | ---: | ---: | ---: |")
+                for row in dns_summary:
+                    hs = row.get("avg_handshake_bytes", 0.0)
+                    c = row.get("avg_control_bytes", 0.0)
+                    p = row.get("avg_payload_bytes", 0.0)
+                    total = hs + c + p
+                    share = (hs / total * 100) if total else 0
+                    lines.append(
+                        f"| {row['protocol'].upper()} | {_format_bytes(hs)} | {_format_bytes(c)} | "
+                        f"{_format_bytes(p)} | {share:.1f}% |"
+                    )
+                lines.extend(["", "| Protocol | Avg bursts | Avg burst bytes |", "| --- | ---: | ---: |"])
+                for row in dns_summary:
+                    lines.append(
+                        f"| {row['protocol'].upper()} | {row['avg_num_bursts']:.1f} | "
+                        f"{_format_bytes(row['avg_avg_burst_bytes'])} |"
+                    )
+                lines.extend(
+                    [
+                        "",
+                        "DoQ's payload figure includes a small amount of connection-maintenance traffic "
+                        "and should be interpreted as approximate.",
+                    ]
                 )
-            lines.extend(["", "| Protocol | Avg bursts | Avg burst bytes |", "| --- | ---: | ---: |"])
-            for row in dns_summary:
-                lines.append(
-                    f"| {row['protocol'].upper()} | {row['avg_num_bursts']:.1f} | "
-                    f"{_format_bytes(row['avg_avg_burst_bytes'])} |"
-                )
-            lines.extend(
-                [
-                    "",
-                    "DoQ's payload figure includes a small amount of connection-maintenance traffic "
-                    "and should be interpreted as approximate.",
-                ]
-            )
 
         if flagged_dns_rows:
             lines.extend(["", "### Data quality", ""])
@@ -1600,7 +1615,7 @@ def _markdown_report(
                 )
             lines.extend(["", "Full detail: `dns_flagged_experiments.csv` (rows stay in `dns_results.csv` too)."])
     else:
-        lines.append("No DNS results found for this run.")
+        lines.extend(["", "No DNS results found for this run."])
 
     # --- Web traffic analysis ---
     lines.extend(["", "## Web traffic analysis", ""])
@@ -1751,14 +1766,37 @@ def analyze_run(run_dir: str | Path):
     flagged_dns_rows = [row for row in dns_rows if _float(row, "failed_queries") > 0]
     clean_dns_rows = [row for row in dns_rows if _float(row, "failed_queries") <= 0]
 
-    dns_summary = _summarize(
-        clean_dns_rows,
-        "protocol",
-        ["bytes", "energy_kwh", "co2_kg", "bytes_per_query", "energy_kwh_per_query",
-         "co2_kg_per_query", "num_bursts", "avg_burst_bytes",
-         "handshake_bytes", "control_bytes", "payload_bytes"],
-    )
-    wilcoxon_tests = _wilcoxon_dns_comparisons(clean_dns_rows)
+    # A run with --connection-mode both leaves cold_start and amortized rows
+    # side by side in clean_dns_rows. Averaging them together would blend two
+    # different conditions (handshake paid once vs. per query) into a
+    # meaningless mid-point, so the protocol comparison is split per mode -
+    # same pattern as dns_privacy_cost_summary_by_mode below.
+    dns_metrics = [
+        "bytes", "energy_kwh", "co2_kg", "bytes_per_query", "energy_kwh_per_query",
+        "co2_kg_per_query", "num_bursts", "avg_burst_bytes",
+        "handshake_bytes", "control_bytes", "payload_bytes",
+    ]
+    dns_summary_by_mode = {
+        mode: _summarize(
+            [row for row in clean_dns_rows if (row.get("connection_mode") or "cold_start") == mode],
+            "protocol",
+            dns_metrics,
+        )
+        for mode in ("cold_start", "amortized")
+        if any((row.get("connection_mode") or "cold_start") == mode for row in clean_dns_rows)
+    }
+    wilcoxon_tests_by_mode = {
+        mode: _wilcoxon_dns_comparisons(
+            [row for row in clean_dns_rows if (row.get("connection_mode") or "cold_start") == mode]
+        )
+        for mode in dns_summary_by_mode
+    }
+    # cold_start is the run's baseline condition (worst case, no reuse) and
+    # is what feeds observations/plots/the flat dns_protocol_summary.csv;
+    # amortized-only runs fall back to whatever mode is actually present.
+    primary_mode = "cold_start" if "cold_start" in dns_summary_by_mode else next(iter(dns_summary_by_mode), None)
+    dns_summary = dns_summary_by_mode.get(primary_mode, [])
+    wilcoxon_tests = wilcoxon_tests_by_mode.get(primary_mode, [])
 
     run_status = _run_status(manifest, dns_rows, web_rows)
     timing = _run_timing(dns_rows, web_rows, sites_tested)
@@ -1830,6 +1868,13 @@ def analyze_run(run_dir: str | Path):
             generated_files.append(file_name)
     for mode, summary_rows in dns_privacy_cost_summary_by_mode.items():
         file_name = f"dns_privacy_cost_by_category_{mode}.csv"
+        _write_csv(analysis_dir / file_name, summary_rows)
+        if summary_rows:
+            generated_files.append(file_name)
+    for mode, summary_rows in dns_summary_by_mode.items():
+        if mode == primary_mode:
+            continue  # already written as dns_protocol_summary.csv above
+        file_name = f"dns_protocol_summary_{mode}.csv"
         _write_csv(analysis_dir / file_name, summary_rows)
         if summary_rows:
             generated_files.append(file_name)
@@ -1924,7 +1969,7 @@ def analyze_run(run_dir: str | Path):
     report = _markdown_report(
         run_dir,
         run_info=run_info,
-        dns_summary=dns_summary,
+        dns_summary_by_mode=dns_summary_by_mode,
         flagged_dns_rows=flagged_dns_rows,
         clean_web_rows=clean_web_rows,
         flagged_web_rows=flagged_web_rows,
@@ -1932,7 +1977,7 @@ def analyze_run(run_dir: str | Path):
         origin_summary=origin_summary,
         type_summary=type_summary,
         generated_files=generated_files,
-        wilcoxon_tests=wilcoxon_tests,
+        wilcoxon_tests_by_mode=wilcoxon_tests_by_mode,
         dns_privacy_cost_summary_by_mode=dns_privacy_cost_summary_by_mode,
     )
     report_path = analysis_dir / "summary.md"

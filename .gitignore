@@ -271,6 +271,16 @@ results/**/*
 !results/20260717_004628/analysis/
 !results/20260717_004628/analysis/**
 
+# Run masivo definitivo v2 (100 sites x 3 protocolos, web_repetitions=3,
+# --connection-mode both) - reemplaza a 20260717_004628 como referencia
+# citable para la memoria
+!results/20260725_002327/
+!results/20260725_002327/dns_results.csv
+!results/20260725_002327/web_results.csv
+!results/20260725_002327/manifest.json
+!results/20260725_002327/analysis/
+!results/20260725_002327/analysis/**
+
 # Re-ignorar capturas grandes incluso dentro de las ejecuciones versionadas
 results/**/*.pcap
 

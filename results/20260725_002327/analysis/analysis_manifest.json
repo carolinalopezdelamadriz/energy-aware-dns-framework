@@ -1,0 +1,33 @@
+{
+  "run_dir": "results/20260725_002327",
+  "dns_rows": 600,
+  "web_rows": 300,
+  "web_rows_flagged": 40,
+  "profiles": 300,
+  "generated_files": [
+    "dns_protocol_summary.csv",
+    "dns_flagged_experiments.csv",
+    "web_site_summary.csv",
+    "web_category_summary.csv",
+    "web_flagged_sites.csv",
+    "web_origin_summary.csv",
+    "web_origin_resources.csv",
+    "web_resource_type_summary.csv",
+    "web_resource_type_resources.csv",
+    "dns_privacy_cost_by_site.csv",
+    "dns_privacy_cost_by_category_cold_start.csv",
+    "dns_privacy_cost_by_category_amortized.csv",
+    "dns_protocol_summary_amortized.csv",
+    "fig_dns_avg_bytes.png",
+    "fig_dns_co2_by_protocol.png",
+    "fig_overhead_breakdown.png",
+    "fig_burst_patterns.png",
+    "fig_web_overhead_scatter.png",
+    "fig_web_bytes_by_category.png",
+    "fig_web_overhead_by_category.png",
+    "fig_web_origin_bytes.png",
+    "fig_web_resource_types.png",
+    "fig_cfp_by_category.png",
+    "fig_dashboard.png"
+  ]
+}
