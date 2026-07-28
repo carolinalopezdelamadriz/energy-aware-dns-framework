@@ -59,20 +59,31 @@ ORIGIN_LABELS = {
 }
 
 PLOT_STYLE = {
-    "figure.facecolor": "#FAFAFA",
+    "figure.facecolor": "#FFFFFF",
     "axes.facecolor": "#FFFFFF",
-    "axes.edgecolor": "#B0BEC5",
-    "axes.labelcolor": "#37474F",
-    "axes.titleweight": "600",
-    "axes.titlesize": 13,
+    "axes.edgecolor": "#90A4AE",
+    "axes.linewidth": 0.9,
+    "axes.labelcolor": "#263238",
     "axes.labelsize": 11,
-    "xtick.color": "#546E7A",
-    "ytick.color": "#546E7A",
-    "font.family": "sans-serif",
-    "font.sans-serif": ["DejaVu Sans", "Arial", "Helvetica"],
-    "grid.color": "#ECEFF1",
-    "grid.linewidth": 0.8,
+    "axes.labelweight": "500",
+    "xtick.color": "#455A64",
+    "ytick.color": "#455A64",
+    "xtick.labelsize": 9.5,
+    "ytick.labelsize": 9.5,
+    "font.family": "serif",
+    "font.serif": ["Nimbus Roman", "Times New Roman", "DejaVu Serif"],
+    "grid.color": "#E0E4E7",
+    "grid.linewidth": 0.7,
+    "legend.fontsize": 9,
+    "legend.frameon": False,
 }
+
+# Small, muted style for panel labels inside multi-panel figures (e.g. the
+# dashboard, or a bar+pie pair showing the same data two ways). These are
+# navigational aids for telling subplots apart, not a figure title: the
+# figure title itself lives only in the LaTeX \caption, never inside the
+# image, so it is never duplicated on the page.
+PANEL_LABEL_STYLE = {"fontsize": 10.5, "color": "#546E7A", "fontweight": "500", "pad": 8}
 
 
 ## AÑADIR JUSTIFICACIONES ???
@@ -467,7 +478,6 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
     fig, ax = plt.subplots(figsize=(8.5, 5.8))
     bars = ax.bar(labels, values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
 
-    ax.set_title("Median DNS traffic by protocol", pad=18)
     ax.set_ylabel("Bytes per resolution (median)")
     ax.set_yscale("log")
     ax.grid(axis="y", linestyle="--", alpha=0.9)
@@ -490,7 +500,7 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
             bbox={"boxstyle": "round,pad=0.35", "facecolor": "#ECEFF1", "edgecolor": "none"},
         )
 
-    fig.subplots_adjust(top=0.90, bottom=0.16)
+    fig.subplots_adjust(top=0.96, bottom=0.16)
     fig.text(
         0.12,
         0.05,
@@ -522,8 +532,7 @@ def _plot_dns_co2_by_protocol(path: Path, dns_summary: list[dict[str, Any]]) -> 
     fig, ax = plt.subplots(figsize=(8.5, 5.8))
     bars = ax.bar(labels, values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
 
-    ax.set_title("Median estimated CO₂ per resolution, by protocol", pad=18)
-    ax.set_ylabel("kg CO₂e (5 repetitions, median)")
+    ax.set_ylabel("kg CO$_2$e (5 repetitions, median)")
     ax.grid(axis="y", linestyle="--", alpha=0.9)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -534,7 +543,7 @@ def _plot_dns_co2_by_protocol(path: Path, dns_summary: list[dict[str, Any]]) -> 
             ha="center", va="bottom", fontsize=9, color="#37474F",
         )
 
-    fig.subplots_adjust(top=0.90, bottom=0.14)
+    fig.subplots_adjust(top=0.96, bottom=0.14)
     fig.text(
         0.12, 0.04,
         "Same energy/CO2 model as the rest of the run (bytes measured × energy-per-byte × grid intensity)",
@@ -582,14 +591,13 @@ def _plot_overhead_breakdown(path: Path, dns_summary: list[dict[str, Any]]) -> b
         if total > 0 and h > 0:
             ax.text(i, total * 1.02, f"{h / total * 100:.0f}% handshake", ha="center", fontsize=8.5, color="#546E7A")
 
-    ax.set_title("Overhead breakdown by protocol", pad=18)
     ax.set_ylabel("Bytes per experiment (5 repetitions)")
     ax.legend(frameon=False, loc="upper left")
     ax.grid(axis="y", linestyle="--", alpha=0.9)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    fig.subplots_adjust(top=0.90, bottom=0.12)
+    fig.subplots_adjust(top=0.96, bottom=0.12)
     fig.text(
         0.12, 0.03,
         "Decrypted with saved TLS/QUIC session keys · DoQ short-header bytes mix real "
@@ -641,7 +649,7 @@ def _plot_burst_patterns(path: Path, dns_bursts: list[dict[str, Any]], max_domai
                 label=entry.get("domain") or entry.get("site_label") or "?",
             )
             plotted += 1
-        ax.set_title(protocol.upper())
+        ax.set_title(protocol.upper(), **PANEL_LABEL_STYLE)
         ax.set_xlabel("Burst index")
         ax.set_ylabel("Burst size (bytes)")
         ax.set_yscale("log")
@@ -651,8 +659,7 @@ def _plot_burst_patterns(path: Path, dns_bursts: list[dict[str, Any]], max_domai
         if plotted:
             ax.legend(fontsize=7, frameon=False, loc="upper right")
 
-    fig.suptitle("Burst-size sequence per domain, by protocol (website-fingerprinting view)", fontsize=12)
-    fig.subplots_adjust(top=0.86, wspace=0.32)
+    fig.subplots_adjust(top=0.90, wspace=0.32)
     _save_figure(plt, path)
     return True
 
@@ -698,7 +705,6 @@ def _plot_web_overhead_scatter(path: Path, web_rows: list[dict[str, str]]) -> bo
     ax.set_yscale("log")
     ax.set_xlabel("CDP bytes (browser payload)")
     ax.set_ylabel("PCAP bytes (network capture)")
-    ax.set_title(f"Network overhead across {len(web_rows)} site visits", pad=14)
     ax.grid(True, which="both", linestyle="--", alpha=0.5)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -759,7 +765,6 @@ def _plot_web_bytes_by_category(path: Path, web_rows: list[dict[str, str]]) -> b
     ax.set_xticklabels([_category_label(c) for c in categories], rotation=30, ha="right")
     ax.set_xlim(min(positions_pcap) - 1.1, max(positions_cdp) + 1.1)
     ax.set_ylabel("Bytes (log scale)")
-    ax.set_title("Web traffic by category: network capture vs browser payload", pad=14)
     ax.grid(axis="y", linestyle="--", alpha=0.7)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -806,17 +811,15 @@ def _plot_overhead_by_category(path: Path, web_rows: list[dict[str, str]]) -> bo
     ax.set_xticks(range(1, len(categories) + 1))
     ax.set_xticklabels([_category_label(c) for c in categories], rotation=30, ha="right")
     ax.set_ylabel("PCAP vs CDP overhead (%)")
-    ax.set_title("Network overhead by category", pad=34)
-    # Outside the axes, not "upper right" - an in-plot legend collided with
+    # Outside the axes, not "upper right": an in-plot legend collided with
     # real outlier points for whichever rightmost category happened to have
     # a high overhead value that run (e.g. netflix's 878.7% sat right behind
-    # the legend box and was easy to miss). Placed above the title (not just
-    # above the axes) so it doesn't collide with that either.
-    ax.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.1), ncol=1)
+    # the legend box and was easy to miss).
+    ax.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.04), ncol=1)
     ax.grid(axis="y", linestyle="--", alpha=0.7)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    fig.subplots_adjust(top=0.85)
+    fig.subplots_adjust(top=0.90)
     _save_figure(plt, path)
     return True
 
@@ -851,8 +854,7 @@ def _plot_cfp_by_category(path: Path, web_category_summary: list[dict[str, Any]]
     )
     ax.set_xticks(range(len(categories)))
     ax.set_xticklabels([_category_label(c) for c in categories], rotation=30, ha="right")
-    ax.set_ylabel("Median CO₂ per page load (kg CO₂e), error bars = IQR")
-    ax.set_title("Estimated carbon footprint by site category", pad=14)
+    ax.set_ylabel("Median CO$_2$ per page load (kg CO$_2$e), error bars = IQR")
     ax.grid(axis="y", linestyle="--", alpha=0.7)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -916,7 +918,6 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
     ax_bar.set_yticklabels(labels, fontsize=11)
     ax_bar.invert_yaxis()
     ax_bar.set_xlabel("Total CDP bytes")
-    ax_bar.set_title("CDP traffic by resource origin", pad=14, fontsize=13, fontweight="600")
     ax_bar.set_xlim(0, xmax)
     ax_bar.xaxis.set_major_locator(MaxNLocator(nbins=5))
     ax_bar.xaxis.set_major_formatter(
@@ -955,15 +956,15 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
         frameon=False,
         fontsize=10,
     )
-    ax_pie.set_title("Percentage breakdown", pad=12, fontsize=12)
+    ax_pie.set_title("Percentage breakdown", **PANEL_LABEL_STYLE)
 
     fig.text(
         0.01, 0.01,
         "Tracker/ads share is a high-confidence subset (precision over recall, see Issue "
-        "16) - a lower bound, not an exhaustive count of tracking traffic",
+        "16): a lower bound, not an exhaustive count of tracking traffic",
         fontsize=7.5, color="#78909C",
     )
-    fig.subplots_adjust(left=0.14, right=0.78, top=0.96, bottom=0.1, hspace=0.55)
+    fig.subplots_adjust(left=0.14, right=0.78, top=0.97, bottom=0.1, hspace=0.5)
     _save_figure(plt, path)
     return True
 
@@ -1009,7 +1010,6 @@ def _plot_resource_type_distribution(path: Path, type_summary: list[dict[str, An
     ax_bar.set_yticklabels(labels, fontsize=11)
     ax_bar.invert_yaxis()
     ax_bar.set_xlabel("Total CDP bytes")
-    ax_bar.set_title("CDP traffic by resource type", pad=14, fontsize=13, fontweight="600")
     ax_bar.set_xlim(0, xmax)
     ax_bar.xaxis.set_major_locator(MaxNLocator(nbins=5))
     ax_bar.xaxis.set_major_formatter(
@@ -1048,9 +1048,9 @@ def _plot_resource_type_distribution(path: Path, type_summary: list[dict[str, An
         frameon=False,
         fontsize=10,
     )
-    ax_pie.set_title("Percentage breakdown", pad=12, fontsize=12)
+    ax_pie.set_title("Percentage breakdown", **PANEL_LABEL_STYLE)
 
-    fig.subplots_adjust(left=0.14, right=0.78, top=0.96, bottom=0.06, hspace=0.55)
+    fig.subplots_adjust(left=0.14, right=0.78, top=0.97, bottom=0.06, hspace=0.5)
     _save_figure(plt, path)
     return True
 
@@ -1075,21 +1075,15 @@ def _plot_run_dashboard(
     color_map = _category_color_map(plt, categories)
 
     fig, axes = plt.subplots(2, 2, figsize=(13, 10))
-    fig.suptitle(
-        f"Experiment summary — {run_id} ({len(web_rows)} site visits)",
-        fontsize=15,
-        fontweight="600",
-        y=0.98,
-    )
 
-    # DNS — matches summary table (median bytes + overhead vs DNS)
+    # DNS: matches summary table (median bytes + overhead vs DNS)
     ax = axes[0, 0]
     dns_labels = [row["protocol"].upper() for row in dns_summary]
     dns_values = [row["median_bytes"] for row in dns_summary]
     dns_colors = [PROTOCOL_COLORS.get(row["protocol"], "#455A64") for row in dns_summary]
     bars = ax.bar(dns_labels, dns_values, color=dns_colors, edgecolor="white", width=0.58)
     ax.set_yscale("log")
-    ax.set_title("Median DNS traffic by protocol")
+    ax.set_title("Median DNS traffic by protocol", **PANEL_LABEL_STYLE)
     ax.set_ylabel("Bytes (log scale)")
     ax.grid(axis="y", linestyle="--", alpha=0.8)
     ax.spines["top"].set_visible(False)
@@ -1124,7 +1118,7 @@ def _plot_run_dashboard(
     ax.set_yscale("log")
     ax.set_xlabel("CDP bytes")
     ax.set_ylabel("PCAP bytes")
-    ax.set_title("Network overhead per site (colored by category)")
+    ax.set_title("Network overhead per site (colored by category)", **PANEL_LABEL_STYLE)
     ax.grid(True, which="both", linestyle="--", alpha=0.5)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -1150,7 +1144,7 @@ def _plot_run_dashboard(
     ax.axhline(0, color="#C62828", linestyle="--", linewidth=1)
     ax.set_xticks(range(1, len(sorted_categories) + 1))
     ax.set_xticklabels([_category_label(c) for c in sorted_categories], rotation=30, ha="right")
-    ax.set_title("Overhead % by category")
+    ax.set_title("Overhead % by category", **PANEL_LABEL_STYLE)
     ax.set_ylabel("Overhead (%)")
     ax.grid(axis="y", linestyle="--", alpha=0.8)
     ax.spines["top"].set_visible(False)
@@ -1162,7 +1156,7 @@ def _plot_run_dashboard(
     origin_values = [row["bytes"] for row in origin_summary]
     origin_colors = [ORIGIN_COLORS.get(row["origin_class"], "#78909C") for row in origin_summary]
     legend_labels = [
-        f"{label} — {_format_bytes(row['bytes'])} ({row['pct_of_cdp_bytes']:.1f}%)"
+        f"{label}: {_format_bytes(row['bytes'])} ({row['pct_of_cdp_bytes']:.1f}%)"
         for label, row in zip(origin_labels, origin_summary)
     ]
     wedges, _texts, autotexts = ax.pie(
@@ -1183,16 +1177,16 @@ def _plot_run_dashboard(
         frameon=False,
         fontsize=8,
     )
-    ax.set_title("CDP traffic by origin (total)")
+    ax.set_title("CDP traffic by origin (total)", **PANEL_LABEL_STYLE)
 
     fig.text(
         0.01,
         0.01,
-        "Latest analyzed run · see summary.md",
+        f"Run {run_id} · {len(web_rows)} site visits",
         fontsize=8,
         color="#78909C",
     )
-    plt.tight_layout(rect=[0, 0.02, 1, 0.96])
+    plt.tight_layout(rect=[0, 0.02, 1, 0.99])
     _save_figure(plt, path, dpi=200)
     return True
 
