@@ -1,6 +1,4 @@
 selenium
-pyshark
-pandas
 matplotlib
 scipy # tests de Wilcoxon en run_analysis.py
 dnspython

@@ -463,6 +463,11 @@ def _annotate_log_bars(ax, bars, values, formatter=_format_bytes):
 
 
 def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]]) -> bool:
+    """Two-panel DNS protocol comparison: median bytes per resolution (log
+    scale) alongside median CO2 per resolution, so the two 3-bar charts that
+    would otherwise repeat Table 6.1's own columns side by side share one
+    figure instead of standing in as two near-identical, separately
+    captioned ones."""
     if not dns_summary:
         return False
 
@@ -472,27 +477,26 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
         return False
 
     labels = [row["protocol"].upper() for row in dns_summary]
-    values = [row["median_bytes"] for row in dns_summary]
+    byte_values = [row["median_bytes"] for row in dns_summary]
+    co2_values = [row["median_co2_kg"] for row in dns_summary]
     colors = [PROTOCOL_COLORS.get(row["protocol"], "#455A64") for row in dns_summary]
 
-    fig, ax = plt.subplots(figsize=(8.5, 5.8))
-    bars = ax.bar(labels, values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
+    fig, (ax_bytes, ax_co2) = plt.subplots(1, 2, figsize=(11.5, 5.4))
 
-    ax.set_ylabel("Bytes per resolution (median)")
-    ax.set_yscale("log")
-    ax.grid(axis="y", linestyle="--", alpha=0.9)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-
-    _annotate_log_bars(ax, bars, values)
-
-    if len(values) >= 2 and values[0] > 0:
-        ratio = values[1] / values[0]
-        ax.text(
+    bars = ax_bytes.bar(labels, byte_values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
+    ax_bytes.set_ylabel("Bytes per resolution (median)")
+    ax_bytes.set_yscale("log")
+    ax_bytes.grid(axis="y", linestyle="--", alpha=0.9)
+    ax_bytes.spines["top"].set_visible(False)
+    ax_bytes.spines["right"].set_visible(False)
+    _annotate_log_bars(ax_bytes, bars, byte_values)
+    if len(byte_values) >= 2 and byte_values[0] > 0:
+        ratio = byte_values[1] / byte_values[0]
+        ax_bytes.text(
             0.03,
             0.97,
             f"DoH ≈ {ratio:.0f}× classic DNS",
-            transform=ax.transAxes,
+            transform=ax_bytes.transAxes,
             ha="left",
             va="top",
             fontsize=9,
@@ -500,54 +504,24 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
             bbox={"boxstyle": "round,pad=0.35", "facecolor": "#ECEFF1", "edgecolor": "none"},
         )
 
-    fig.subplots_adjust(top=0.96, bottom=0.16)
-    fig.text(
-        0.12,
-        0.05,
-        "Log scale · includes transport and encryption overhead",
-        fontsize=8,
-        color="#78909C",
-    )
-    _save_figure(plt, path)
-    return True
-
-
-def _plot_dns_co2_by_protocol(path: Path, dns_summary: list[dict[str, Any]]) -> bool:
-    """Carbon footprint per protocol - comparative graph #2 from the plan
-    ("Huella de Carbono por Protocolo"), previously only shown as a table
-    column, never visualized on its own.
-    """
-    if not dns_summary:
-        return False
-
-    try:
-        plt = _setup_matplotlib(path.parent)
-    except ImportError:
-        return False
-
-    labels = [row["protocol"].upper() for row in dns_summary]
-    values = [row["median_co2_kg"] for row in dns_summary]
-    colors = [PROTOCOL_COLORS.get(row["protocol"], "#455A64") for row in dns_summary]
-
-    fig, ax = plt.subplots(figsize=(8.5, 5.8))
-    bars = ax.bar(labels, values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
-
-    ax.set_ylabel("kg CO$_2$e (5 repetitions, median)")
-    ax.grid(axis="y", linestyle="--", alpha=0.9)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-
-    for bar, value in zip(bars, values):
-        ax.text(
+    co2_bars = ax_co2.bar(labels, co2_values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
+    ax_co2.set_ylabel("kg CO$_2$e (5 repetitions, median)")
+    ax_co2.grid(axis="y", linestyle="--", alpha=0.9)
+    ax_co2.spines["top"].set_visible(False)
+    ax_co2.spines["right"].set_visible(False)
+    for bar, value in zip(co2_bars, co2_values):
+        ax_co2.text(
             bar.get_x() + bar.get_width() / 2, bar.get_height(), f"{value:.2e}",
             ha="center", va="bottom", fontsize=9, color="#37474F",
         )
 
-    fig.subplots_adjust(top=0.96, bottom=0.14)
+    fig.subplots_adjust(top=0.94, bottom=0.16, wspace=0.32)
     fig.text(
-        0.12, 0.04,
-        "Same energy/CO2 model as the rest of the run (bytes measured × energy-per-byte × grid intensity)",
-        fontsize=8, color="#78909C",
+        0.02,
+        0.03,
+        "Log scale (left) · same energy/CO2 model as the rest of the run (right)",
+        fontsize=8,
+        color="#78909C",
     )
     _save_figure(plt, path)
     return True
@@ -608,11 +582,15 @@ def _plot_overhead_breakdown(path: Path, dns_summary: list[dict[str, Any]]) -> b
     return True
 
 
-def _plot_burst_patterns(path: Path, dns_bursts: list[dict[str, Any]], max_domains: int = 6) -> bool:
+def _plot_burst_patterns(path: Path, dns_bursts: list[dict[str, Any]], max_domains: int = 3) -> bool:
     """Burst-size sequence per domain, one subplot per protocol - the
     website-fingerprinting angle: even where the query content is encrypted
     (DoH/DoQ), the shape of the burst sequence on the wire is still visible,
     and may still differ enough between domains to be distinguishable.
+
+    Each domain has one burst file per repetition, so entries are
+    deduplicated by domain first (keeping only the first repetition seen)
+    to avoid the same domain appearing several times in the legend.
     """
     if not dns_bursts:
         return False
@@ -624,7 +602,12 @@ def _plot_burst_patterns(path: Path, dns_bursts: list[dict[str, Any]], max_domai
 
     by_protocol: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entry in dns_bursts:
-        by_protocol[entry.get("protocol", "unknown")].append(entry)
+        protocol = entry.get("protocol", "unknown")
+        domain = entry.get("domain") or entry.get("site_label") or "?"
+        seen_domains = {e.get("domain") or e.get("site_label") or "?" for e in by_protocol[protocol]}
+        if domain in seen_domains:
+            continue
+        by_protocol[protocol].append(entry)
 
     protocols = [p for p in ("dns", "doh", "doq") if p in by_protocol]
     if not protocols:
@@ -656,10 +639,28 @@ def _plot_burst_patterns(path: Path, dns_bursts: list[dict[str, Any]], max_domai
         ax.grid(True, linestyle="--", alpha=0.6)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
+        if protocol != "dns":
+            ax.text(
+                0.01,
+                0.99,
+                "Tall bursts ≈ handshake",
+                transform=ax.transAxes,
+                fontsize=7.5,
+                color="#546E7A",
+                ha="left",
+                va="top",
+                bbox={"boxstyle": "round,pad=0.25", "facecolor": "white", "edgecolor": "none", "alpha": 0.85},
+            )
         if plotted:
-            ax.legend(fontsize=7, frameon=False, loc="upper right")
+            ax.legend(
+                fontsize=7.5,
+                frameon=False,
+                loc="upper center",
+                bbox_to_anchor=(0.5, -0.18),
+                ncol=min(plotted, 3),
+            )
 
-    fig.subplots_adjust(top=0.90, wspace=0.32)
+    fig.subplots_adjust(top=0.90, bottom=0.28, wspace=0.32)
     _save_figure(plt, path)
     return True
 
@@ -896,14 +897,9 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
         colors.append(ORIGIN_COLORS.get(origin, "#78909C"))
 
     total = sum(values) or 1
-    xmax = max(values) * 1.28 if values else 1
+    xmax = max(values) * 1.32 if values else 1
 
-    fig, (ax_bar, ax_pie) = plt.subplots(
-        2,
-        1,
-        figsize=(9.5, 7.5),
-        gridspec_kw={"height_ratios": [1.1, 1], "hspace": 0.55},
-    )
+    fig, ax_bar = plt.subplots(figsize=(9.5, 4.2))
 
     y_pos = range(len(labels))
     bars = ax_bar.barh(
@@ -938,33 +934,13 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
             color="#37474F",
         )
 
-    _wedges, _texts, autotexts = ax_pie.pie(
-        values,
-        colors=colors,
-        startangle=90,
-        counterclock=False,
-        autopct=lambda pct: f"{pct:.0f}%" if pct >= 4 else "",
-        pctdistance=0.72,
-        wedgeprops={"linewidth": 1.2, "edgecolor": "white"},
-        textprops={"fontsize": 10, "color": "#37474F", "fontweight": "600"},
-    )
-    ax_pie.legend(
-        _wedges,
-        [f"{label} ({row['pct_of_cdp_bytes']:.0f}%)" for label, row in zip(labels, origin_summary)],
-        loc="center left",
-        bbox_to_anchor=(1.02, 0.5),
-        frameon=False,
-        fontsize=10,
-    )
-    ax_pie.set_title("Percentage breakdown", **PANEL_LABEL_STYLE)
-
     fig.text(
-        0.01, 0.01,
+        0.02, 0.02,
         "Tracker/ads share is a high-confidence subset (precision over recall, see Issue "
         "16): a lower bound, not an exhaustive count of tracking traffic",
         fontsize=7.5, color="#78909C",
     )
-    fig.subplots_adjust(left=0.14, right=0.78, top=0.97, bottom=0.1, hspace=0.5)
+    fig.subplots_adjust(left=0.14, right=0.96, top=0.96, bottom=0.2)
     _save_figure(plt, path)
     return True
 
@@ -988,14 +964,9 @@ def _plot_resource_type_distribution(path: Path, type_summary: list[dict[str, An
     colors = [RESOURCE_TYPE_COLORS.get(row["resource_type"], "#78909C") for row in type_summary]
 
     total = sum(values) or 1
-    xmax = max(values) * 1.28 if values else 1
+    xmax = max(values) * 1.32 if values else 1
 
-    fig, (ax_bar, ax_pie) = plt.subplots(
-        2,
-        1,
-        figsize=(9.5, 7.5),
-        gridspec_kw={"height_ratios": [1.1, 1], "hspace": 0.55},
-    )
+    fig, ax_bar = plt.subplots(figsize=(9.5, 4.6))
 
     y_pos = range(len(labels))
     bars = ax_bar.barh(
@@ -1030,34 +1001,13 @@ def _plot_resource_type_distribution(path: Path, type_summary: list[dict[str, An
             color="#37474F",
         )
 
-    _wedges, _texts, autotexts = ax_pie.pie(
-        values,
-        colors=colors,
-        startangle=90,
-        counterclock=False,
-        autopct=lambda pct: f"{pct:.0f}%" if pct >= 4 else "",
-        pctdistance=0.72,
-        wedgeprops={"linewidth": 1.2, "edgecolor": "white"},
-        textprops={"fontsize": 10, "color": "#37474F", "fontweight": "600"},
-    )
-    ax_pie.legend(
-        _wedges,
-        [f"{label} ({row['pct_of_cdp_bytes']:.0f}%)" for label, row in zip(labels, type_summary)],
-        loc="center left",
-        bbox_to_anchor=(1.02, 0.5),
-        frameon=False,
-        fontsize=10,
-    )
-    ax_pie.set_title("Percentage breakdown", **PANEL_LABEL_STYLE)
-
-    fig.subplots_adjust(left=0.14, right=0.78, top=0.97, bottom=0.06, hspace=0.5)
+    fig.subplots_adjust(left=0.14, right=0.96, top=0.96, bottom=0.16)
     _save_figure(plt, path)
     return True
 
 
 def _plot_run_dashboard(
     path: Path,
-    run_id: str,
     dns_summary: list[dict[str, Any]],
     web_rows: list[dict[str, str]],
     origin_summary: list[dict[str, Any]],
@@ -1179,14 +1129,7 @@ def _plot_run_dashboard(
     )
     ax.set_title("CDP traffic by origin (total)", **PANEL_LABEL_STYLE)
 
-    fig.text(
-        0.01,
-        0.01,
-        f"Run {run_id} · {len(web_rows)} site visits",
-        fontsize=8,
-        color="#78909C",
-    )
-    plt.tight_layout(rect=[0, 0.02, 1, 0.99])
+    plt.tight_layout()
     _save_figure(plt, path, dpi=200)
     return True
 
@@ -1891,12 +1834,6 @@ def analyze_run(run_dir: str | Path):
             ),
         ),
         (
-            "fig_dns_co2_by_protocol.png",
-            lambda: _plot_dns_co2_by_protocol(
-                analysis_dir / "fig_dns_co2_by_protocol.png", dns_summary
-            ),
-        ),
-        (
             "fig_overhead_breakdown.png",
             lambda: _plot_overhead_breakdown(
                 analysis_dir / "fig_overhead_breakdown.png", dns_summary
@@ -1948,7 +1885,6 @@ def analyze_run(run_dir: str | Path):
             "fig_dashboard.png",
             lambda: _plot_run_dashboard(
                 analysis_dir / "fig_dashboard.png",
-                run_dir.name,
                 dns_summary,
                 clean_web_rows,
                 origin_summary,

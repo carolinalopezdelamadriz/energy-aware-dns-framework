@@ -320,7 +320,6 @@ Which kind of content drives page weight, complementing who served it (origin, a
 - `dns_privacy_cost_by_category_amortized.csv`
 - `dns_protocol_summary_amortized.csv`
 - `fig_dns_avg_bytes.png`
-- `fig_dns_co2_by_protocol.png`
 - `fig_overhead_breakdown.png`
 - `fig_burst_patterns.png`
 - `fig_web_overhead_scatter.png`
