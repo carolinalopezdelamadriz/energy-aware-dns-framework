@@ -10,18 +10,13 @@ class CFPResult:
 
 # Energy model constants
 # Network energy intensity (J/byte) - Sustainable Web Design Model v4 (2024),
-# "networks" segment only (0.059 kWh/GB), since that is the system boundary
-# this framework actually measures (network traffic via PCAP)
-
+# "networks" segment only (0.059 kWh/GB), since that matches what this
+# framework actually measures: network traffic via PCAP.
 # https://sustainablewebdesign.org/estimating-digital-emissions/
-
 DEFAULT_ENERGY_PER_BYTE_J = 2.124e-4
 
-# Grid carbon intensity (kgCO2e/kWh) - Spanish electricity mix, CNMC
-# 2024 generation data: 283 gCO2eq/kWh
-
-# CNMC, Acuerdo de Etiquetado de la Electricidad
-
+# Grid carbon intensity (kgCO2e/kWh) - Spanish electricity mix, CNMC 2024
+# generation data: 283 gCO2eq/kWh.
 DEFAULT_CO2_PER_KWH = 0.283
 
 

@@ -53,11 +53,8 @@ def _validate_dns_response(data):
 
 
 def _make_doq_protocol_class(timeout):
-    # Imported lazily (and the class built here, not at module level) so that
-    # importing doq_resolver.py doesn't hard-fail when aioquic isn't
-    # installed - callers get the friendly RuntimeError below instead of a
-    # raw ImportError at import time, which would break unrelated modules
-    # that import from this file 
+    # Imported lazily so importing this file doesn't fail when aioquic isn't
+    # installed - callers get the friendlier RuntimeError below instead.
     from aioquic.asyncio import QuicConnectionProtocol
     from aioquic.quic.events import StreamDataReceived
 
@@ -196,11 +193,9 @@ def resolve_doq(domain, resolver_name=DEFAULT_DOQ_RESOLVER, use_kdig_fallback=Tr
 
 
 def resolve_doq_batch(domains, resolver_name=DEFAULT_DOQ_RESOLVER, keylog_path=None):
-    """Amortized-mode counterpart to resolve_doq() - reuses a single QUIC
-    connection across all domains instead of reconnecting per query. No kdig
-    fallback here: kdig is a one-shot external command with no persistent
-    connection to reuse, so it can't answer the question this mode exists
-    to measure."""
+    """Amortized-mode version of resolve_doq(): reuses one QUIC connection
+    for all domains instead of reconnecting per query. No kdig fallback
+    here, since kdig is a one-shot command with no connection to reuse."""
     resolver = get_doq_resolver(resolver_name)
     try:
         return asyncio.run(

@@ -46,14 +46,11 @@ RESOURCE_TYPE_COLORS = {
 ORIGIN_LABELS = {
     "first_party": "First party",
     "third_party": "Third party",
-    # TRACKER_DOMAINS/TRACKER_KEYWORDS in browser.py are a high-confidence
-    # subset (precision over recall, see Issue 16) 
-    # 
-    # a resource that doesn't
-    # match falls back to first/third-party, it isn't confirmed non-tracking
-
-    # this bucket is a lower bound on real tracker/ad traffic, not a
-    # complete count - labelled as such everywhere it's shown, not just here
+    # TRACKER_DOMAINS/TRACKER_KEYWORDS in browser.py are a curated subset,
+    # not exhaustive - a resource that doesn't match just falls back to
+    # first/third-party, it isn't confirmed to be non-tracking. So this
+    # bucket is a lower bound on real tracker/ad traffic, labelled as such
+    # everywhere it's shown.
     "tracker_or_ads": "Trackers & ads (high-confidence lower bound)",
     "unknown_origin": "Unknown",
 }
@@ -64,17 +61,17 @@ PLOT_STYLE = {
     "axes.edgecolor": "#90A4AE",
     "axes.linewidth": 0.9,
     "axes.labelcolor": "#263238",
-    "axes.labelsize": 11,
+    "axes.labelsize": 12.5,
     "axes.labelweight": "500",
     "xtick.color": "#455A64",
     "ytick.color": "#455A64",
-    "xtick.labelsize": 9.5,
-    "ytick.labelsize": 9.5,
+    "xtick.labelsize": 11,
+    "ytick.labelsize": 11,
     "font.family": "serif",
     "font.serif": ["Nimbus Roman", "Times New Roman", "DejaVu Serif"],
     "grid.color": "#E0E4E7",
     "grid.linewidth": 0.7,
-    "legend.fontsize": 9,
+    "legend.fontsize": 10.5,
     "legend.frameon": False,
 }
 
@@ -83,10 +80,17 @@ PLOT_STYLE = {
 # navigational aids for telling subplots apart, not a figure title: the
 # figure title itself lives only in the LaTeX \caption, never inside the
 # image, so it is never duplicated on the page.
-PANEL_LABEL_STYLE = {"fontsize": 10.5, "color": "#546E7A", "fontweight": "500", "pad": 8}
+PANEL_LABEL_STYLE = {"fontsize": 12, "color": "#546E7A", "fontweight": "500", "pad": 8}
+
+# Figures are now sized in inches close to their actual printed width in the
+# memoria (see the width= given to each \includegraphics call), so that text
+# rendered at the point sizes above comes out close to that size on the page
+# instead of being shrunk by ~2x when LaTeX scales a screen-sized figure
+# down to column width.
 
 
-## AÑADIR JUSTIFICACIONES ???
+# Empirical thresholds, tuned by looking at the actual data rather than
+# taken from a paper - see Chapter 4 of the thesis for how they're used.
 TOP_N_OUTLIERS = 10
 MIN_PLAUSIBLE_CDP_BYTES = 30_000
 BOT_BLOCK_RATIO_THRESHOLD = 10
@@ -149,12 +153,9 @@ def _summarize(rows: list[dict[str, str]], group_key: str, metrics: list[str]):
         }
         for metric in metrics:
             values = [_float(row, metric) for row in group_rows]
-            # Median (+ IQR) is the headline statistic wherever this summary
-            # is displayed
-            # a handful of outliers shouldn't be able to move
-            # the reported "typical" value the way they can with a mean
-
-            # avg/min/max are kept alongside 
+            # Median is the headline number everywhere this summary is shown,
+            # since a few outliers shouldn't move the "typical" value the way
+            # they would with a mean. avg/min/max are kept alongside it.
             item[f"avg_{metric}"] = mean(values) if values else 0.0
             item[f"median_{metric}"] = median(values) if values else 0.0
             item[f"min_{metric}"] = min(values) if values else 0.0
@@ -180,10 +181,9 @@ def _format_median_iqr(row: dict[str, Any], metric: str, formatter=None) -> str:
 
 
 def _rank_biserial_wilcoxon(values_a: list[float], values_b: list[float]) -> dict[str, Any] | None:
-    """Paired Wilcoxon signed-rank test (scipy) plus a matched-pairs
-    rank-biserial effect size computed directly from the signed ranks
-    (ties broken by simple sequential rank, not averaged - an accepted
-    simplification for a dataset with few exact byte-count ties)."""
+    """Paired Wilcoxon signed-rank test (scipy), plus a rank-biserial effect
+    size computed by hand from the same signed ranks, since scipy doesn't
+    give us that part."""
     if wilcoxon is None or len(values_a) != len(values_b):
         return None
 
@@ -207,10 +207,9 @@ def _rank_biserial_wilcoxon(values_a: list[float], values_b: list[float]) -> dic
 
 
 def _paired_dns_bytes_by_site(dns_rows: list[dict[str, str]]) -> dict[str, dict[str, float]]:
-    """site_label -> {protocol: bytes}, scoped to whichever connection_mode
-    is most common in this run (so pairing never mixes cold_start and
-    amortized rows for the same site if a run used --connection-mode both).
-    """
+    """site_label -> {protocol: bytes}, using whichever connection_mode is
+    most common in this run, so we never mix cold_start and amortized rows
+    for the same site if a run used --connection-mode both."""
     modes = [row.get("connection_mode") or "cold_start" for row in dns_rows]
     dominant_mode = max(set(modes), key=modes.count) if modes else "cold_start"
 
@@ -224,10 +223,10 @@ def _paired_dns_bytes_by_site(dns_rows: list[dict[str, str]]) -> dict[str, dict[
 
 
 def _unique_domains_resolved(profile: dict[str, Any]) -> int:
-    """Distinct hostnames across a page's resources - each one is, in
-    principle, a separate DNS resolution the browser had to make (subdomains
-    count separately: static.files.bbci.co.uk needs its own lookup even
-    though www.bbc.com shares a registered domain with it)."""
+    """Distinct hostnames across a page's resources - each one is basically a
+    separate DNS lookup the browser had to make. Subdomains count separately,
+    since static.files.bbci.co.uk needs its own lookup even if www.bbc.com
+    shares the same registered domain."""
     hosts = set()
     for resource in profile.get("resources", []):
         host = urlparse(resource.get("url", "")).hostname
@@ -237,14 +236,12 @@ def _unique_domains_resolved(profile: dict[str, Any]) -> int:
 
 
 def _dns_overhead_per_resolution(dns_rows: list[dict[str, str]], connection_mode: str) -> float | None:
-    """Median DoH-vs-classic-DNS bytes for a *single* resolution (each row's
-    total divided by its own repetition count) in the given connection_mode.
-    One representative figure, applied uniformly to every unique domain a
-    page resolves - defensible because this run's own handshake/control/
-    payload breakdown (see above) already shows the per-resolution cost is
-    dominated by protocol/connection overhead rather than anything specific
-    to the domain name being resolved, so a per-domain figure would mostly
-    add noise, not precision."""
+    """Median DoH-vs-classic-DNS bytes for a single resolution (each row's
+    total divided by its own repetition count), for the given connection
+    mode. Used as one representative figure for every domain a page
+    resolves, since the handshake/control/payload breakdown above already
+    shows the per-resolution cost mostly comes from protocol overhead, not
+    from the specific domain being resolved."""
 
     def _median_per_resolution(protocol: str) -> float | None:
         values = []
@@ -268,12 +265,10 @@ def _dns_overhead_per_resolution(dns_rows: list[dict[str, str]], connection_mode
 def _dns_privacy_cost_rows(
     web_rows: list[dict[str, str]], profiles_by_file: dict[str, dict[str, Any]], dns_rows: list[dict[str, str]]
 ) -> list[dict[str, Any]]:
-    """Answers the research question directly: how much of a page's own
-    weight is attributable to choosing an encrypted DNS protocol for all the
-    domains it needed resolved, instead of classic DNS? Bridges the two
-    halves of the framework (isolated DNS overhead + full page weight) that
-    were otherwise only ever discussed side by side, never combined into one
-    number."""
+    """How much of a page's own weight comes from choosing an encrypted DNS
+    protocol for all the domains it needed resolved, instead of classic DNS.
+    Combines the DNS-side overhead with the web-side page weight into one
+    number, instead of leaving them as two separate results."""
     rows = []
     for connection_mode in ("cold_start", "amortized"):
         overhead_per_resolution = _dns_overhead_per_resolution(dns_rows, connection_mode)
@@ -321,30 +316,14 @@ def _top_rows(web_rows: list[dict[str, str]], key: str, top_n: int = TOP_N_OUTLI
 
 
 def _flag_web_rows(web_rows: list[dict[str, str]]) -> dict[int, str]:
-    """Flag web visits whose PCAP/CDP figures likely reflect a measurement
-    artifact rather than real site traffic, so category stats and plots can
-    exclude them instead of being silently skewed. Three distinct causes,
-    checked in order so each row gets the most specific explanation that
-    fits rather than a generic one:
-
-    1. FLAG_BOT_BLOCKED - the page never really loaded. CDP payload is
-       implausibly small for a real page AND the PCAP/CDP ratio is extreme
-       AND the PCAP itself is small in absolute terms (rules out a real,
-       heavy page that happens to have a low ratio for other reasons).
-    2. FLAG_CAPTURE_CONTAMINATION - capture_scoped_to_chrome_ports being
-       False means the port-scoping best-effort lookup failed for this visit
-       (see Issue 7), so the PCAP is known-unscoped - a direct, already-
-       computed signal that was sitting unused. (A preamble-noise-ratio
-       signal was also tried here and rejected - see the comment above
-       PREAMBLE_NOISE_RATIO_THRESHOLD's old definition for why: it reproduces
-       Issue 14's false-positive problem in ratio form, ~0 correlation with
-       actual overhead.)
-    3. FLAG_STATISTICAL_OUTLIER - whatever is left over after 1 and 2 is
-       genuinely unexplained by either known cause, flagged only by the IQR
-       check on overhead_pct - a real outlier of unclear origin, not
-       relabelled as noise or blocking just because it's convenient.
-
-    See ISSUES_LOG.md (Issues 5/7/10/14).
+    """Flags web visits whose PCAP/CDP figures look like a measurement
+    problem rather than real site traffic, so category stats and plots can
+    exclude them instead of being skewed. Checked in order, so each visit
+    gets the most specific reason: bot-blocked (payload too small for a real
+    page and the PCAP/CDP ratio too extreme), capture contamination (the
+    port-scoping lookup failed for that visit, so the PCAP is known to be
+    unscoped), and finally a plain statistical outlier for whatever is left
+    over and still falls outside the normal range.
     """
     flags: dict[int, str] = {}
     remaining: list[tuple[int, float]] = []
@@ -463,11 +442,9 @@ def _annotate_log_bars(ax, bars, values, formatter=_format_bytes):
 
 
 def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]]) -> bool:
-    """Two-panel DNS protocol comparison: median bytes per resolution (log
-    scale) alongside median CO2 per resolution, so the two 3-bar charts that
-    would otherwise repeat Table 6.1's own columns side by side share one
-    figure instead of standing in as two near-identical, separately
-    captioned ones."""
+    """Two-panel figure: median bytes per resolution (log scale) next to
+    median CO2 per resolution, so the two bar charts share one figure and
+    one caption instead of two nearly identical ones."""
     if not dns_summary:
         return False
 
@@ -481,7 +458,7 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
     co2_values = [row["median_co2_kg"] for row in dns_summary]
     colors = [PROTOCOL_COLORS.get(row["protocol"], "#455A64") for row in dns_summary]
 
-    fig, (ax_bytes, ax_co2) = plt.subplots(1, 2, figsize=(11.5, 5.4))
+    fig, (ax_bytes, ax_co2) = plt.subplots(1, 2, figsize=(6.6, 3.4))
 
     bars = ax_bytes.bar(labels, byte_values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
     ax_bytes.set_ylabel("Bytes per resolution (median)")
@@ -528,16 +505,14 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
 
 
 def _plot_overhead_breakdown(path: Path, dns_summary: list[dict[str, Any]]) -> bool:
-    """Handshake / control / payload bytes per protocol - the "control bytes,
-    TLS handshakes, QUIC signaling" breakdown, decrypted from the pcap with
-    the saved session keys instead of just a total (see overhead_breakdown.py).
+    """Handshake / control / payload bytes per protocol, decrypted from the
+    pcap with the saved session keys instead of just showing a total byte
+    count (see overhead_breakdown.py).
 
-    Deliberately still uses the mean (not the median used elsewhere) for the
-    three stacked components: this is an additive decomposition, and
-    avg(handshake) + avg(control) + avg(payload) == avg(total) always holds,
-    while median(handshake) + median(control) + median(payload) generally
-    does NOT equal median(total) - the stacked bar would silently stop
-    matching the run's actual median total bytes.
+    Uses the mean here, not the median used elsewhere in this file: the mean
+    of the three parts always adds up to the mean of the total, but the
+    median of each part doesn't add up to the median total, so the stacked
+    bar would stop matching the real number if we used medians.
     """
     if not dns_summary:
         return False
@@ -554,9 +529,9 @@ def _plot_overhead_breakdown(path: Path, dns_summary: list[dict[str, Any]]) -> b
     control = [row.get("avg_control_bytes", 0.0) for row in dns_summary]
     payload = [row.get("avg_payload_bytes", 0.0) for row in dns_summary]
 
-    fig, ax = plt.subplots(figsize=(8.5, 5.8))
+    fig, ax = plt.subplots(figsize=(4.8, 3.6))
     ax.bar(labels, handshake, label="Handshake", color="#C62828", width=0.58)
-    ax.bar(labels, control, bottom=handshake, label="Control (ACK/teardown/framing)", color="#F9A825", width=0.58)
+    ax.bar(labels, control, bottom=handshake, label="Control (ACK/teardown)", color="#F9A825", width=0.58)
     bottom_payload = [h + c for h, c in zip(handshake, control)]
     ax.bar(labels, payload, bottom=bottom_payload, label="Payload", color="#2E7D32", width=0.58)
 
@@ -566,16 +541,17 @@ def _plot_overhead_breakdown(path: Path, dns_summary: list[dict[str, Any]]) -> b
             ax.text(i, total * 1.02, f"{h / total * 100:.0f}% handshake", ha="center", fontsize=8.5, color="#546E7A")
 
     ax.set_ylabel("Bytes per experiment (5 repetitions)")
-    ax.legend(frameon=False, loc="upper left")
+    ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=3, fontsize=9)
     ax.grid(axis="y", linestyle="--", alpha=0.9)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+    ax.margins(y=0.12)
 
-    fig.subplots_adjust(top=0.96, bottom=0.12)
+    fig.subplots_adjust(top=0.92, bottom=0.32)
     fig.text(
-        0.12, 0.03,
-        "Decrypted with saved TLS/QUIC session keys · DoQ short-header bytes mix real "
-        "response data with a small, undistinguished share of 1-RTT ACKs",
+        0.02, 0.02,
+        "Decrypted with saved TLS/QUIC session keys · DoQ short-header bytes mix\n"
+        "real response data with a small, undistinguished share of 1-RTT ACKs",
         fontsize=7.5, color="#78909C",
     )
     _save_figure(plt, path)
@@ -583,14 +559,14 @@ def _plot_overhead_breakdown(path: Path, dns_summary: list[dict[str, Any]]) -> b
 
 
 def _plot_burst_patterns(path: Path, dns_bursts: list[dict[str, Any]], max_domains: int = 3) -> bool:
-    """Burst-size sequence per domain, one subplot per protocol - the
-    website-fingerprinting angle: even where the query content is encrypted
-    (DoH/DoQ), the shape of the burst sequence on the wire is still visible,
-    and may still differ enough between domains to be distinguishable.
+    """Burst-size sequence per domain, one subplot per protocol. Even when
+    the query itself is encrypted (DoH/DoQ), the shape of the bursts on the
+    wire is still visible and can differ between domains - the
+    website-fingerprinting angle mentioned in the thesis.
 
-    Each domain has one burst file per repetition, so entries are
-    deduplicated by domain first (keeping only the first repetition seen)
-    to avoid the same domain appearing several times in the legend.
+    Each domain has one burst file per repetition, so we keep only the first
+    repetition per domain to avoid the same domain showing up twice in the
+    legend.
     """
     if not dns_bursts:
         return False
@@ -613,10 +589,11 @@ def _plot_burst_patterns(path: Path, dns_bursts: list[dict[str, Any]], max_domai
     if not protocols:
         return False
 
-    fig, axes = plt.subplots(1, len(protocols), figsize=(5.5 * len(protocols), 5))
+    fig, axes = plt.subplots(1, len(protocols), figsize=(2.9 * len(protocols), 3.4))
     if len(protocols) == 1:
         axes = [axes]
 
+    legend_handles, legend_labels = None, None
     for ax, protocol in zip(axes, protocols):
         plotted = 0
         for entry in by_protocol[protocol][:max_domains]:
@@ -634,33 +611,42 @@ def _plot_burst_patterns(path: Path, dns_bursts: list[dict[str, Any]], max_domai
             plotted += 1
         ax.set_title(protocol.upper(), **PANEL_LABEL_STYLE)
         ax.set_xlabel("Burst index")
-        ax.set_ylabel("Burst size (bytes)")
+        if ax is axes[0]:
+            ax.set_ylabel("Burst size (bytes)")
         ax.set_yscale("log")
         ax.grid(True, linestyle="--", alpha=0.6)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         if protocol != "dns":
             ax.text(
-                0.01,
-                0.99,
-                "Tall bursts ≈ handshake",
+                0.03,
+                0.97,
+                "Tall bursts\n≈ handshake",
                 transform=ax.transAxes,
-                fontsize=7.5,
+                fontsize=9,
                 color="#546E7A",
                 ha="left",
                 va="top",
-                bbox={"boxstyle": "round,pad=0.25", "facecolor": "white", "edgecolor": "none", "alpha": 0.85},
+                bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "edgecolor": "none", "alpha": 0.9},
             )
-        if plotted:
-            ax.legend(
-                fontsize=7.5,
-                frameon=False,
-                loc="upper center",
-                bbox_to_anchor=(0.5, -0.18),
-                ncol=min(plotted, 3),
-            )
+        if plotted and legend_handles is None:
+            legend_handles, legend_labels = ax.get_legend_handles_labels()
 
-    fig.subplots_adjust(top=0.90, bottom=0.28, wspace=0.32)
+    # One shared legend for the whole figure instead of one per panel: every
+    # panel plots the same domains in the same colors, so three legends
+    # would just repeat each other and take up space.
+    if legend_handles:
+        fig.legend(
+            legend_handles,
+            legend_labels,
+            fontsize=10,
+            frameon=False,
+            loc="lower center",
+            bbox_to_anchor=(0.5, -0.02),
+            ncol=len(legend_labels),
+        )
+
+    fig.subplots_adjust(top=0.88, bottom=0.32, wspace=0.35)
     _save_figure(plt, path)
     return True
 
@@ -680,7 +666,7 @@ def _plot_web_overhead_scatter(path: Path, web_rows: list[dict[str, str]]) -> bo
     cdp_values = [_float(row, "cdp_bytes") for row in web_rows]
     pcap_values = [_float(row, "pcap_bytes") for row in web_rows]
 
-    fig, ax = plt.subplots(figsize=(9, 7.2))
+    fig, ax = plt.subplots(figsize=(4.8, 3.9))
     for category in sorted(set(categories)):
         xs = [cdp for cdp, cat in zip(cdp_values, categories) if cat == category]
         ys = [pcap for pcap, cat in zip(pcap_values, categories) if cat == category]
@@ -736,7 +722,7 @@ def _plot_web_bytes_by_category(path: Path, web_rows: list[dict[str, str]]) -> b
     positions_pcap = [i * 2.2 for i in range(len(categories))]
     positions_cdp = [pos + 0.9 for pos in positions_pcap]
 
-    fig, ax = plt.subplots(figsize=(max(9, len(categories) * 1.15), 6.2))
+    fig, ax = plt.subplots(figsize=(max(5.5, len(categories) * 0.55), 3.7))
     box_pcap = ax.boxplot(
         [grouped[c]["pcap"] for c in categories],
         positions=positions_pcap,
@@ -775,8 +761,11 @@ def _plot_web_bytes_by_category(path: Path, web_rows: list[dict[str, str]]) -> b
             plt.Rectangle((0, 0), 1, 1, facecolor="#00838F", alpha=0.75, label="CDP (browser payload)"),
         ],
         frameon=False,
-        loc="upper right",
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.42),
+        ncol=2,
     )
+    fig.subplots_adjust(bottom=0.46)
     _save_figure(plt, path)
     return True
 
@@ -799,7 +788,7 @@ def _plot_overhead_by_category(path: Path, web_rows: list[dict[str, str]]) -> bo
     categories = sorted(grouped.keys())
     color_map = _category_color_map(plt, categories)
 
-    fig, ax = plt.subplots(figsize=(max(9, len(categories) * 0.95), 5.8))
+    fig, ax = plt.subplots(figsize=(max(4.8, len(categories) * 0.48), 3.0))
     box = ax.boxplot([grouped[c] for c in categories], patch_artist=True, widths=0.6, showfliers=True)
     for patch, category in zip(box["boxes"], categories):
         patch.set_facecolor(color_map[category])
@@ -812,10 +801,8 @@ def _plot_overhead_by_category(path: Path, web_rows: list[dict[str, str]]) -> bo
     ax.set_xticks(range(1, len(categories) + 1))
     ax.set_xticklabels([_category_label(c) for c in categories], rotation=30, ha="right")
     ax.set_ylabel("PCAP vs CDP overhead (%)")
-    # Outside the axes, not "upper right": an in-plot legend collided with
-    # real outlier points for whichever rightmost category happened to have
-    # a high overhead value that run (e.g. netflix's 878.7% sat right behind
-    # the legend box and was easy to miss).
+    # Legend goes outside the axes, not "upper right": an in-plot legend
+    # ended up hiding real outlier points in a previous version of this plot.
     ax.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.04), ncol=1)
     ax.grid(axis="y", linestyle="--", alpha=0.7)
     ax.spines["top"].set_visible(False)
@@ -842,7 +829,7 @@ def _plot_cfp_by_category(path: Path, web_category_summary: list[dict[str, Any]]
     color_map = _category_color_map(plt, categories)
     colors = [color_map[c] for c in categories]
 
-    fig, ax = plt.subplots(figsize=(max(9, len(categories) * 0.95), 6.2))
+    fig, ax = plt.subplots(figsize=(max(5.5, len(categories) * 0.55), 3.6))
     bars = ax.bar(
         range(len(categories)),
         values,
@@ -855,10 +842,11 @@ def _plot_cfp_by_category(path: Path, web_category_summary: list[dict[str, Any]]
     )
     ax.set_xticks(range(len(categories)))
     ax.set_xticklabels([_category_label(c) for c in categories], rotation=30, ha="right")
-    ax.set_ylabel("Median CO$_2$ per page load (kg CO$_2$e), error bars = IQR")
+    ax.set_ylabel("Median CO$_2$ per page load (kg CO$_2$e)")
     ax.grid(axis="y", linestyle="--", alpha=0.7)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+    ax.margins(y=0.15)
 
     ymax = max(v + err for v, err in zip(values, upper_err)) or 1
     for bar, value in zip(bars, values):
@@ -871,8 +859,9 @@ def _plot_cfp_by_category(path: Path, web_category_summary: list[dict[str, Any]]
             fontsize=8,
             color="#37474F",
         )
+    fig.text(0.02, 0.02, "Error bars show the interquartile range (IQR)", fontsize=7.5, color="#78909C")
 
-    fig.subplots_adjust(bottom=0.24)
+    fig.subplots_adjust(bottom=0.24, top=0.9)
     _save_figure(plt, path)
     return True
 
@@ -899,7 +888,7 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
     total = sum(values) or 1
     xmax = max(values) * 1.32 if values else 1
 
-    fig, ax_bar = plt.subplots(figsize=(9.5, 4.2))
+    fig, ax_bar = plt.subplots(figsize=(5.5, 2.8))
 
     y_pos = range(len(labels))
     bars = ax_bar.barh(
@@ -946,10 +935,9 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
 
 
 def _plot_resource_type_distribution(path: Path, type_summary: list[dict[str, Any]]) -> bool:
-    """Which kind of resource (images, scripts, ...) drives page weight - the
-    "distinguir entre HTML, Imagenes, Scripts" breakdown from the plan,
-    complementing the by-origin view above (who served it, not what it is).
-    """
+    """Which kind of resource (images, scripts, ...) drives page weight,
+    complementing the by-origin view above: this shows what the bytes are,
+    not who served them."""
     if not type_summary:
         return False
 
@@ -966,7 +954,7 @@ def _plot_resource_type_distribution(path: Path, type_summary: list[dict[str, An
     total = sum(values) or 1
     xmax = max(values) * 1.32 if values else 1
 
-    fig, ax_bar = plt.subplots(figsize=(9.5, 4.6))
+    fig, ax_bar = plt.subplots(figsize=(5.5, 3.0))
 
     y_pos = range(len(labels))
     bars = ax_bar.barh(
@@ -1003,134 +991,6 @@ def _plot_resource_type_distribution(path: Path, type_summary: list[dict[str, An
 
     fig.subplots_adjust(left=0.14, right=0.96, top=0.96, bottom=0.16)
     _save_figure(plt, path)
-    return True
-
-
-def _plot_run_dashboard(
-    path: Path,
-    dns_summary: list[dict[str, Any]],
-    web_rows: list[dict[str, str]],
-    origin_summary: list[dict[str, Any]],
-) -> bool:
-    if not (dns_summary and web_rows and origin_summary):
-        return False
-
-    try:
-        plt = _setup_matplotlib(path.parent)
-    except ImportError:
-        return False
-
-    dns_base = next((row["median_bytes"] for row in dns_summary if row["protocol"] == "dns"), None)
-    categories = [row.get("category") or "uncategorized" for row in web_rows]
-    color_map = _category_color_map(plt, categories)
-
-    fig, axes = plt.subplots(2, 2, figsize=(13, 10))
-
-    # DNS: matches summary table (median bytes + overhead vs DNS)
-    ax = axes[0, 0]
-    dns_labels = [row["protocol"].upper() for row in dns_summary]
-    dns_values = [row["median_bytes"] for row in dns_summary]
-    dns_colors = [PROTOCOL_COLORS.get(row["protocol"], "#455A64") for row in dns_summary]
-    bars = ax.bar(dns_labels, dns_values, color=dns_colors, edgecolor="white", width=0.58)
-    ax.set_yscale("log")
-    ax.set_title("Median DNS traffic by protocol", **PANEL_LABEL_STYLE)
-    ax.set_ylabel("Bytes (log scale)")
-    ax.grid(axis="y", linestyle="--", alpha=0.8)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    _annotate_log_bars(ax, bars, dns_values)
-    if dns_base and len(dns_values) >= 2:
-        ax.text(
-            0.98,
-            0.96,
-            f"DoH ≈ {dns_values[1] / dns_base:.0f}× DNS",
-            transform=ax.transAxes,
-            ha="right",
-            va="top",
-            fontsize=8,
-            color="#546E7A",
-            bbox={"boxstyle": "round,pad=0.3", "facecolor": "#ECEFF1", "edgecolor": "none"},
-        )
-
-    # PCAP vs CDP overhead — one point per site, colored by category
-    ax = axes[0, 1]
-    cdp_values = [_float(row, "cdp_bytes") for row in web_rows]
-    pcap_values = [_float(row, "pcap_bytes") for row in web_rows]
-    point_colors = [color_map[category] for category in categories]
-    ax.scatter(cdp_values, pcap_values, color=point_colors, s=28, alpha=0.8, edgecolor="white", linewidth=0.4)
-    positive_values = [value for value in cdp_values + pcap_values if value > 0]
-    if positive_values:
-        lo, hi = min(positive_values) * 0.7, max(positive_values) * 1.4
-        ax.plot([lo, hi], [lo, hi], linestyle="--", color="#B0BEC5", linewidth=1.1)
-        ax.set_xlim(lo, hi)
-        ax.set_ylim(lo, hi)
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel("CDP bytes")
-    ax.set_ylabel("PCAP bytes")
-    ax.set_title("Network overhead per site (colored by category)", **PANEL_LABEL_STYLE)
-    ax.grid(True, which="both", linestyle="--", alpha=0.5)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-
-    # Overhead % by category
-    ax = axes[1, 0]
-    grouped_overhead: dict[str, list[float]] = defaultdict(list)
-    for row in web_rows:
-        grouped_overhead[row.get("category") or "uncategorized"].append(_float(row, "overhead_pct"))
-    sorted_categories = sorted(grouped_overhead.keys())
-    box = ax.boxplot(
-        [grouped_overhead[c] for c in sorted_categories],
-        patch_artist=True,
-        widths=0.6,
-        showfliers=False,
-    )
-    for patch, category in zip(box["boxes"], sorted_categories):
-        patch.set_facecolor(color_map[category])
-        patch.set_alpha(0.75)
-    for element in ("whiskers", "caps", "medians"):
-        for line in box[element]:
-            line.set_color("#37474F")
-    ax.axhline(0, color="#C62828", linestyle="--", linewidth=1)
-    ax.set_xticks(range(1, len(sorted_categories) + 1))
-    ax.set_xticklabels([_category_label(c) for c in sorted_categories], rotation=30, ha="right")
-    ax.set_title("Overhead % by category", **PANEL_LABEL_STYLE)
-    ax.set_ylabel("Overhead (%)")
-    ax.grid(axis="y", linestyle="--", alpha=0.8)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-
-    # Origin — pooled CDP bytes (same totals as summary.md)
-    ax = axes[1, 1]
-    origin_labels = [ORIGIN_LABELS.get(row["origin_class"], row["origin_class"]) for row in origin_summary]
-    origin_values = [row["bytes"] for row in origin_summary]
-    origin_colors = [ORIGIN_COLORS.get(row["origin_class"], "#78909C") for row in origin_summary]
-    legend_labels = [
-        f"{label}: {_format_bytes(row['bytes'])} ({row['pct_of_cdp_bytes']:.1f}%)"
-        for label, row in zip(origin_labels, origin_summary)
-    ]
-    wedges, _texts, autotexts = ax.pie(
-        origin_values,
-        colors=origin_colors,
-        autopct=lambda pct: f"{pct:.0f}%" if pct >= 3 else "",
-        startangle=90,
-        counterclock=False,
-        pctdistance=0.75,
-        wedgeprops={"linewidth": 1, "edgecolor": "white"},
-        textprops={"fontsize": 9, "fontweight": "600"},
-    )
-    ax.legend(
-        wedges,
-        legend_labels,
-        loc="center left",
-        bbox_to_anchor=(1.02, 0.5),
-        frameon=False,
-        fontsize=8,
-    )
-    ax.set_title("CDP traffic by origin (total)", **PANEL_LABEL_STYLE)
-
-    plt.tight_layout()
-    _save_figure(plt, path, dpi=200)
     return True
 
 
@@ -1250,10 +1110,9 @@ def _run_timing(dns_rows: list[dict[str, str]], web_rows: list[dict[str, str]], 
 
 
 def _run_status(manifest: dict[str, Any], dns_rows: list[dict[str, str]], web_rows: list[dict[str, str]]) -> dict[str, Any]:
-    """Completion checks derived entirely from what's already in dns_results.csv/
-    web_results.csv - no new instrumentation needed, works retroactively on past
-    runs too. 'Applicable=False' means the stage wasn't part of this run
-    (e.g. --skip-web), not that it failed."""
+    """Completion checks built only from what's already in dns_results.csv and
+    web_results.csv, so this also works on old runs. "Applicable=False" means
+    that stage wasn't part of this run (e.g. --skip-web), not that it failed."""
     config = manifest.get("config", {})
     num_sites = len(manifest.get("sites", []))
     protocols = config.get("protocols") or []
@@ -1320,9 +1179,8 @@ def _automatic_observations(
     dns_summary: list[dict[str, Any]],
     web_category_summary: list[dict[str, Any]],
 ) -> list[str]:
-    """Short, mechanically-derived highlights - not an interpretation, just
-    enough to know what happened without reading every table. The excluded-
-    sites count itself is a Run status warning, not repeated here."""
+    """Short, auto-generated highlights, not an interpretation - just enough
+    to see what happened without reading every table."""
     observations = []
 
     if dns_summary:
@@ -1697,17 +1555,15 @@ def analyze_run(run_dir: str | Path):
             row["co2_kg_per_query"] = _float(row, "co2_kg") / repetitions
 
     # An experiment where every repetition failed still leaves bytes in the
-    # pcap (failed connection attempts, not a successful resolution - see
-    # dns_experiment.py's own warning) and shouldn't count the same as a
-    # clean measurement in the protocol comparison/tests below.
+    # pcap (failed connection attempts, not a real resolution), so it
+    # shouldn't count as a clean measurement below.
     flagged_dns_rows = [row for row in dns_rows if _float(row, "failed_queries") > 0]
     clean_dns_rows = [row for row in dns_rows if _float(row, "failed_queries") <= 0]
 
     # A run with --connection-mode both leaves cold_start and amortized rows
-    # side by side in clean_dns_rows. Averaging them together would blend two
-    # different conditions (handshake paid once vs. per query) into a
-    # meaningless mid-point, so the protocol comparison is split per mode -
-    # same pattern as dns_privacy_cost_summary_by_mode below.
+    # mixed together. Averaging them would blend two different conditions
+    # into a meaningless number, so the comparison is split per mode instead
+    # (same idea as dns_privacy_cost_summary_by_mode below).
     dns_metrics = [
         "bytes", "energy_kwh", "co2_kg", "bytes_per_query", "energy_kwh_per_query",
         "co2_kg_per_query", "num_bursts", "avg_burst_bytes",
@@ -1743,9 +1599,8 @@ def analyze_run(run_dir: str | Path):
         row["data_quality_flag"] = flag_by_index.get(i, "")
     clean_web_rows = [row for row in web_rows if not row["data_quality_flag"]]
     flagged_web_rows = [row for row in web_rows if row["data_quality_flag"]]
-    # Exclude by the individual visit's own profile file, not by site label -
-    # otherwise one bad repetition would wipe out an otherwise-clean profile
-    # from the same site's other visits.
+    # Exclude by each visit's own profile file, not by site label - otherwise
+    # one bad repetition would also remove the same site's clean visits.
     flagged_profile_files = {row.get("profile_file") for row in flagged_web_rows if row.get("profile_file")}
 
     web_site_summary = _summarize(
@@ -1774,9 +1629,9 @@ def analyze_run(run_dir: str | Path):
     profiles_by_file = {p.get("profile_file"): p for p in profiles}
     dns_privacy_cost_rows = _dns_privacy_cost_rows(web_rows, profiles_by_file, clean_dns_rows)
     dns_privacy_cost_clean = [row for row in dns_privacy_cost_rows if not row["data_quality_flag"]]
-    # _summarize groups by a single key, but this metric also varies by
-    # connection_mode - re-split per mode instead of extending _summarize
-    # into multi-key grouping for what's currently a single use case.
+    # _summarize only groups by one key, but this metric also depends on
+    # connection_mode, so it's split per mode here instead of making
+    # _summarize more general for just this one case.
     dns_privacy_cost_summary_by_mode = {
         mode: _summarize(
             [row for row in dns_privacy_cost_clean if row["connection_mode"] == mode],
@@ -1879,15 +1734,6 @@ def analyze_run(run_dir: str | Path):
             "fig_cfp_by_category.png",
             lambda: _plot_cfp_by_category(
                 analysis_dir / "fig_cfp_by_category.png", web_category_summary
-            ),
-        ),
-        (
-            "fig_dashboard.png",
-            lambda: _plot_run_dashboard(
-                analysis_dir / "fig_dashboard.png",
-                dns_summary,
-                clean_web_rows,
-                origin_summary,
             ),
         ),
     ]

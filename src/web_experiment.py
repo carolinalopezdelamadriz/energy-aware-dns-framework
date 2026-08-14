@@ -24,8 +24,9 @@ def run_web_experiment(
     started_at = int(time.time())
     output_path = ensure_output_dir(output_dir)
     pcap_path = os.path.join(output_path, f"web_{started_at}.pcap")
-    # TLS/QUIC session secrets Chrome logs for this visit (see browser.py) 
-    # same mechanism as the DoH/DoQ resolvers, for decrypting the web pcap
+    # TLS/QUIC session secrets Chrome logs for this visit (see browser.py),
+    # same mechanism as the DoH/DoQ resolvers, so the web pcap can be
+    # decrypted too.
     keylog_path = os.path.join(output_path, f"web_{started_at}.keylog")
 
     print(f"\nWeb experiment: {url}")
@@ -47,20 +48,17 @@ def run_web_experiment(
         stop_capture(capture)
 
     # Scope the PCAP analysis to Chrome's own local ports when available, so
-    # unrelated background traffic on the machine during the capture window
-    # isn't counted as part of this site's footprint 
-    # 
-    # DNS lookups the OS resolver makes on Chrome's behalf outside
-    # its process tree can fall outside this scope too, but that's a tiny
-    # fraction of a page's total bytes compared to the HTTP(S) payload
+    # unrelated background traffic on the machine isn't counted as part of
+    # this site's footprint. DNS lookups the OS makes on Chrome's behalf can
+    # fall outside this scope too, but that's a tiny fraction of a page's
+    # total bytes next to the HTTP(S) payload.
     chrome_ports = profile.get("chrome_local_ports") if profile else None
     total_bytes = analyze_total_bytes(pcap_path, ports=chrome_ports)
     print("Total bytes (pcap):", total_bytes)
 
-    # Bytes captured in the 5s before Chrome even opened - nothing site-related
-    # could be in there, so any bytes are a direct measurement of background
-    # noise on the machine during this specific visit, rather than an
-    # after-the-fact statistical guess (see run_analysis.py's IQR flagging)
+    # Bytes captured in the 5s before Chrome even opened - nothing
+    # site-related can be in there, so this is a direct measurement of
+    # background noise on the machine, not a guess made after the fact.
     preamble_noise_bytes = analyze_bytes_in_window(pcap_path, preamble_start, preamble_end)
     if preamble_noise_bytes:
         print(f"Background noise before Chrome opened: {preamble_noise_bytes} bytes")
@@ -69,22 +67,16 @@ def run_web_experiment(
     pretty_print_cfp(f"WEB ({url})", cfp_res)
 
     # Handshake/control/payload split for the web pcap (see
-    # overhead_breakdown.py) 
-    # 
-    # same idea as the DNS side, scoped to Chrome's own ports like the byte count above. 
-    # 
-    # handshake_bytes + control_bytes is
-    # overhead that is demonstrably protocol (TCP/TLS/QUIC connection setup,
-    # ACKs, teardown) and could never have been part of a CDP resource no
-    # matter how well CDP instrumented the page
-    # 
-    # Whatever gap remains between web_payload_bytes and CDP's own network_bytes (computed below once the
-    # profile is available) is NOT protocol overhead - it's the residual
-    
+    # overhead_breakdown.py), same idea as the DNS side, scoped to Chrome's
+    # own ports like the byte count above. handshake_bytes + control_bytes
+    # is protocol overhead (TCP/TLS/QUIC setup, ACKs, teardown) that could
+    # never have been part of a CDP resource. Whatever gap is left between
+    # payload_bytes and CDP's network_bytes (below) isn't protocol overhead,
+    # it's a residual we can't fully explain.
     web_overhead = breakdown_web_overhead(pcap_path, keylog_path=keylog_path, ports=chrome_ports)
 
-    # Same burst-level features as the DNS side (see fingerprint.py) - scoped
-    # to Chrome's own ports like the byte count above, for the same reason
+    # Same burst-level features as the DNS side (see fingerprint.py), scoped
+    # to Chrome's own ports for the same reason as above.
     burst = burst_features(pcap_path, ports=chrome_ports)
     burst_path = os.path.join(output_path, f"web_{started_at}_bursts.json")
     write_json(burst_path, {
@@ -103,10 +95,9 @@ def run_web_experiment(
         profile["category"] = category
 
         # network_bytes excludes resources served from disk cache or a
-        # Service Worker (they never cross the network interface), so it is
-        # the correct figure to compare against the PCAP
-        
-        # total_bytes is still stored in the JSON as the "payload perceived by the browser"
+        # Service Worker, since those never cross the network interface, so
+        # it's the right figure to compare against the PCAP. total_bytes is
+        # still stored in the JSON as the full payload the browser saw.
         comparison_bytes = profile.get("network_bytes", profile["total_bytes"])
 
         overhead = total_bytes - comparison_bytes
@@ -123,9 +114,9 @@ def run_web_experiment(
         if profile.get("cached_bytes", 0) > 0:
             print(f"Bytes served from cache/Service Worker (excluded): {profile['cached_bytes']}")
 
-        # How much of that overhead is demonstrably protocol (handshake +
-        # control) vs residual (the rest, which CDP should in principle have
-        # seen as network_bytes but didn't fully account for).
+        # How much of that overhead is protocol (handshake + control) vs
+        # residual (the rest, which CDP should in principle have seen as
+        # network_bytes but didn't fully account for).
         protocol_explained = web_overhead["handshake_bytes"] + web_overhead["control_bytes"]
         residual = web_overhead["payload_bytes"] - comparison_bytes
         print(

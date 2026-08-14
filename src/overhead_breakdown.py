@@ -33,8 +33,8 @@ def _combine_filters(*parts):
 
 
 def _classify_dns(pcap_path, ports=None, base_filter=None):
-    # DNS clasico va sin cifrar y sin handshake, asi que solo hay que separar
-    # la cabecera Ethernet+IP+UDP del mensaje DNS en si.
+    # Classic DNS is unencrypted and has no handshake, so all that's needed
+    # is separating the Ethernet+IP+UDP headers from the DNS message itself.
     display_filter = _combine_filters(base_filter, _ports_filter(ports))
     rows = _run_tshark_fields(pcap_path, ["frame.len", "udp.length"], display_filter=display_filter)
 
@@ -67,10 +67,10 @@ def _classify_doh(pcap_path, keylog_path=None, ports=None, base_filter=None):
             continue
         parsed.append([int(length), stream, syn == "1", int(tcp_len or 0), fin == "1", rst == "1", content_type])
 
-    # tshark solo etiqueta el content_type en el segmento donde termina de
-    # reensamblar un record TLS fragmentado, dejando vacios los segmentos
-    # intermedios. Se rellenan recorriendo la lista al reves, asi el
-    # "siguiente visto yendo hacia atras" es el siguiente real del stream.
+    # tshark only labels content_type on the segment where a fragmented TLS
+    # record finishes reassembling, leaving the segments in between empty.
+    # We fill those in by walking the list backwards, so the "next one seen
+    # going backwards" is the real next segment of that stream.
     next_type_for_stream: dict[str, str] = {}
     for entry in reversed(parsed):
         stream, content_type = entry[1], entry[6]
@@ -89,24 +89,25 @@ def _classify_doh(pcap_path, keylog_path=None, ports=None, base_filter=None):
         elif any(t in TLS_HANDSHAKE_TYPES for t in types):
             handshake += length
         else:
-            # aplica tambien al raro segmento sin content_type resuelto:
-            # en un intercambio cold-start corto casi todo es payload real
+            # Also covers the rare segment where content_type couldn't be
+            # resolved: in a short cold-start exchange, almost everything
+            # left is real payload anyway.
             payload += length
 
     return {"handshake_bytes": handshake, "control_bytes": control, "payload_bytes": payload}
 
 
 def _classify_doq(pcap_path, keylog_path=None, ports=None, base_filter=None):
-    # Long header (Initial/0-RTT/Handshake/Retry) = establecimiento de la
-    # conexion; short header (1-RTT) = paquetes ya protegidos con los datos
-    # DNS-over-QUIC. Un datagrama UDP puede llevar ambos coalescidos durante
-    # el handshake (RFC 9000 §12.2) y no hay forma de separarlos por
-    # longitud, asi que ese datagrama cuenta entero como handshake (pasa
-    # poco y solo durante el handshake).
+    # Long header (Initial/0-RTT/Handshake/Retry) = connection setup; short
+    # header (1-RTT) = packets already carrying protected DNS-over-QUIC
+    # data. A single UDP datagram can coalesce both during the handshake
+    # (RFC 9000 §12.2), and there's no way to split them by length, so that
+    # datagram counts entirely as handshake - this only happens rarely and
+    # only during the handshake.
     #
-    # Limitacion conocida: dentro de 1-RTT no se distingue ACK de STREAM
-    # real (las claves de aioquic no le bastan a tshark para eso), asi que
-    # "payload_bytes" aqui es en realidad "bytes post-handshake".
+    # Known limitation: within 1-RTT we can't tell an ACK apart from real
+    # STREAM data (aioquic's keys aren't enough for tshark to do that), so
+    # "payload_bytes" here really means "bytes after the handshake".
     display_filter = _combine_filters(base_filter, _ports_filter(ports))
     rows = _run_tshark_fields(
         pcap_path, ["frame.len", "quic.header_form"], keylog_path=keylog_path, display_filter=display_filter
@@ -127,17 +128,17 @@ def _classify_doq(pcap_path, keylog_path=None, ports=None, base_filter=None):
 
 
 def breakdown_web_overhead(pcap_path, keylog_path=None, ports=None):
-    # Mismo desglose handshake/control/payload que breakdown_overhead(), pero
-    # para el pcap de una visita web, que mezcla varias conexiones a la vez
-    # (TCP+TLS y QUIC, ambas por el puerto 443). Por eso cada clasificador se
-    # limita primero a su transporte ("tcp" / "quic"): sin ese filtro, un
-    # paquete QUIC/UDP colado en el parser TCP de _classify_doh se leeria
-    # como tcp.len == 0 y se contaria mal como control, y viceversa.
+    # Same handshake/control/payload split as breakdown_overhead(), but for
+    # a web visit's pcap, which mixes several connections at once (TCP+TLS
+    # and QUIC, both over port 443). That's why each classifier is first
+    # restricted to its own transport ("tcp" / "quic"): without that filter,
+    # a stray QUIC/UDP packet read by _classify_doh's TCP parser would look
+    # like tcp.len == 0 and get miscounted as control, and vice versa.
     doh_like = _classify_doh(pcap_path, keylog_path=keylog_path, ports=ports, base_filter="tcp")
     doq_like = _classify_doq(pcap_path, keylog_path=keylog_path, ports=ports, base_filter="quic")
-    # UDP/53 normal que el resolver del sistema hace por su cuenta (fuera de
-    # HTTP, pero overhead real igualmente). "not quic" evita contarlo dos
-    # veces con doq_like, que tambien es UDP a nivel de filtro.
+    # Plain UDP/53 that the OS resolver makes on its own (outside of HTTP,
+    # but still real overhead). "not quic" avoids double-counting it with
+    # doq_like, which is also UDP at the filter level.
     dns_like = _classify_dns(pcap_path, ports=ports, base_filter="udp and not quic")
 
     return {
@@ -148,8 +149,8 @@ def breakdown_web_overhead(pcap_path, keylog_path=None, ports=None):
 
 
 def breakdown_overhead(pcap_path, protocol, keylog_path=None):
-    # Reparte el pcap de un experimento DNS en bytes de handshake / control /
-    # payload usando tshark, descifrando TLS/QUIC con el keylog si esta disponible.
+    # Splits a DNS experiment's pcap into handshake / control / payload
+    # bytes using tshark, decrypting TLS/QUIC with the keylog if available.
     if protocol == "dns":
         result = _classify_dns(pcap_path)
     elif protocol == "doh":

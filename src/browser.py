@@ -16,18 +16,10 @@ from selenium.common.exceptions import TimeoutException, WebDriverException
 
 
 # Known advertising/analytics domains, matched against the resource's
-# hostname rather than the full URL
-# Extracted from the categories used by Disconnect's Tracking Protection Lists (the basis of Firefox's built-in
-# tracking protection) and consistent with the domain-list classification
-# approach used in large-scale web-tracking measurement research (Englehardt
-# & Narayanan, "Online Tracking: A 1-million-site Measurement and Analysis",
-# ACM CCS 2016)
-
-# Kept as a high-confidence subset rather than an exhaustive
-# list - precision over recall, so results stay coherent
-
-#### AÑADIR JUSTIFICACIÓN DE DONDE VIENEN ESTOS DOMINIOS Y POR QUÉ SE HAN ELEGIDO (ENGLEHARDT & NARAYANAN, 2016) #### 
-
+# hostname rather than the full URL. Based on the categories used by
+# Disconnect's Tracking Protection Lists (also the basis of Firefox's
+# built-in tracking protection). It's a curated subset, not an exhaustive
+# list, so it favors precision over recall.
 TRACKER_DOMAINS = (
     # advertising / ad exchanges
     "doubleclick.net", "googlesyndication.com", "googleadservices.com",
@@ -50,11 +42,9 @@ TRACKER_DOMAINS = (
     "connect.facebook.net", "platform.twitter.com",
 )
 
-# Specific enough as substrings (of the full URL) that they rarely collide
-# with unrelated words - unlike a bare "ads", which also matches inside
-# "uploads", "downloads" or "readspeaker"
-
-
+# Substrings checked against the full URL. Picked to be specific enough that
+# they don't collide with unrelated words - a bare "ads" would also match
+# inside "uploads" or "downloads".
 TRACKER_KEYWORDS = (
     "tracking",
     "tracker",
@@ -67,20 +57,16 @@ TRACKER_KEYWORDS = (
     "adsrvr",
 )
 
-# Maximum time to wait for a page to load 
-### do we have to justify these numbers? 
-
+# Maximum time to wait for a page to load. Not tied to any study, just long
+# enough that a normal page finishes without waiting forever on a broken one.
 PAGE_LOAD_TIMEOUT = 45
 
 
 def _build_chrome_driver(headless: bool = False, fresh_profile: bool = False, keylog_path: str = None) -> webdriver.Chrome:
-    # Chrome reads SSLKEYLOGFILE from its own process environment at launch
-    # and logs TLS/QUIC session secrets to it in NSS key log format 
-
-    # its the same mechanism as the DoH/DoQ resolvers, so the web pcap can be decrypted in Wireshark too. 
-    
-    # Set before spawning each Chrome instance so a fresh
-    # visit doesn't inherit a stale path from a previous one
+    # Chrome reads SSLKEYLOGFILE from its own environment at launch and logs
+    # TLS/QUIC session secrets there, same mechanism as the DoH/DoQ resolvers,
+    # so the web pcap can be decrypted in Wireshark too. Set it fresh before
+    # each Chrome instance so a new visit doesn't inherit a stale path.
     if keylog_path:
         os.environ["SSLKEYLOGFILE"] = keylog_path
     else:
@@ -94,16 +80,13 @@ def _build_chrome_driver(headless: bool = False, fresh_profile: bool = False, ke
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
 
-    # Suppress Chrome's own background service traffic (account/checkin
-    # registration, component/model updates, sync, safe browsing pings...) 
-
-    # the same flag set used by Lighthouse/chrome-launcher to keep web
-    # performance measurements from being skewed by browser housekeeping
-    # rather than the page itself
-
-    # fresh --user-data-dir looks like a first launch to Chrome, so every visit would otherwise re-trigger this
-    # traffic from scratch (confirmed via a decrypted capture showing real requests to 
-    # android.clients.google.com, optimizationguide-pa.googleapis.com and accounts.google.com that have nothing to do with the visited site
+    # Suppress Chrome's own background traffic (account/checkin, component
+    # updates, sync, safe browsing pings...), the same flags Lighthouse uses
+    # so a performance measurement isn't skewed by browser housekeeping. A
+    # fresh --user-data-dir looks like a first launch, so without these flags
+    # every visit re-triggers this traffic - confirmed with a decrypted
+    # capture showing real requests to Google's own account/update endpoints
+    # that have nothing to do with the site being measured.
     options.add_argument("--disable-background-networking")
     options.add_argument("--disable-sync")
     options.add_argument("--disable-component-update")
@@ -124,18 +107,16 @@ def _build_chrome_driver(headless: bool = False, fresh_profile: bool = False, ke
 
     if fresh_profile:
         # Temporary profile directory so each visit starts without cache or
-        # service workers from previous sessions 
-    
-        # important for reproducibility
+        # service workers left over from a previous one - keeps visits
+        # comparable with each other.
         tmpdir = tempfile.mkdtemp(prefix="chrome_profile_")
         atexit.register(shutil.rmtree, tmpdir, ignore_errors=True)
         options.add_argument(f"--user-data-dir={tmpdir}")
 
-    # reduce (not eliminate) automation fingerprints that some sites use to
-    # serve a bot-challenge page instead of the real content 
-    
-    # sites relying on TLS/behavioral fingerprinting
-    # will still detect a scripted browser regardless of these flags
+    # Reduces (doesn't eliminate) automation fingerprints that some sites use
+    # to serve a bot-challenge page instead of the real content. Sites that
+    # rely on TLS or behavioral fingerprinting will still detect a scripted
+    # browser regardless of these flags.
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
@@ -209,10 +190,10 @@ def _list_local_ports(pids: set[int]) -> set[int]:
 
 class _ChromePortWatcher:
     """Polls the Chrome process tree's open sockets so the PCAP can later be
-    scoped to only those local ports, instead of every packet on the
-    interface (see ISSUES_LOG.md Issue 7: unrelated background traffic was
-    contaminating web captures). Best-effort: any failure just means no
-    ports are collected and the caller falls back to an unscoped capture.
+    scoped to only those local ports instead of every packet on the
+    interface - otherwise unrelated background traffic ends up mixed into
+    the capture. Best-effort: if anything fails, no ports are collected and
+    the caller just falls back to an unscoped capture.
     """
 
     def __init__(self, root_pid: int, interval: float = 0.75):
@@ -264,10 +245,9 @@ def _classify_resource(page_url: str, resource_url: str) -> str:
     resource_host = (urlparse(resource_url).hostname or "").lower()
     resource_lc = resource_url.lower()
 
-    # Domain check against the hostname only 
-
-    # or a hostname like "readspeaker.com" should never trigger this just
-    # because it happens to contain "ads" as a substring
+    # Domain list checked against the hostname only, not the full URL - a
+    # hostname like "readspeaker.com" shouldn't match just because it
+    # contains "ads" as a substring.
     if any(domain in resource_host for domain in TRACKER_DOMAINS):
         return "tracker_or_ads"
     if any(kw in resource_lc for kw in TRACKER_KEYWORDS):
@@ -282,22 +262,9 @@ def _classify_resource(page_url: str, resource_url: str) -> str:
 def browse_and_profile(
     url: str, duration: int = 10, headless: bool = False, fresh_profile: bool = False, keylog_path: str = None
 ) -> dict:
-    """
-    Loads a URL with Selenium + CDP and returns an HTTP traffic profile.
-
-    Returns:
-        {
-            "url": ...,
-            "by_type": {type: bytes, ...},
-            "by_origin": {origin_class: bytes, ...},
-            "total_bytes": total,
-            "network_bytes": total excluding cache/service-worker-served bytes,
-            "cached_bytes": bytes served from disk cache or service worker,
-            "resources": [{"url", "type", "origin_class", "encodedDataLength", "from_cache"}, ...],
-            "chrome_local_ports": local ports used by Chrome's process tree during
-                the visit, for scoping the PCAP analysis to this browser's own
-                traffic (best-effort; empty if PID/port lookup failed)
-        }
+    """Loads a URL with Selenium + CDP and returns a dict with the byte totals
+    by resource type and by origin, the raw resource list, and the local
+    ports Chrome used (so the PCAP can later be scoped to just this visit).
     """
     driver = _build_chrome_driver(headless=headless, fresh_profile=fresh_profile, keylog_path=keylog_path)
 
@@ -335,27 +302,19 @@ def browse_and_profile(
                 resource_type = params.get("type") or response.get("mimeType", "other")
                 url_resp = response.get("url", "")
 
-                # only http(s) resources are relevant: chrome://, chrome-extension://,
-                # data: and blob: URLs are bundled with the browser or generated
-                # in-memory and never cross the network interface
-
-                # If we keep them,
-                # CDP totals get inflated with bytes the PCAP can never see (this is
-                # what happened with chrome://new-tab-page/* being logged before the
-                # actual navigation even starts)
-
+                # Only http(s) resources matter here: chrome://, chrome-extension://,
+                # data: and blob: URLs never cross the network, so keeping them would
+                # inflate CDP totals with bytes the PCAP could never see (this is what
+                # happened with chrome://new-tab-page/* being logged before the actual
+                # navigation even starts).
                 if not url_resp.startswith(("http://", "https://")):
                     continue
 
-                # CDP exposes whether the resource came from disk cache or a
-                # Service Worker instead of the network
-
-                # Those bytes never
-                # cross the network interface, so they will never show up in
-                # the PCAP
-                #
-                # they must be excluded from the PCAP vs CDP
-                # comparison or the overhead comes out negative
+                # CDP tells us whether a resource came from disk cache or a
+                # Service Worker instead of the network. Those bytes never
+                # cross the network interface, so they'd never show up in the
+                # PCAP either - they have to be excluded from the PCAP vs CDP
+                # comparison or the overhead would come out negative.
                 from_cache = bool(
                     response.get("fromDiskCache") or response.get("fromServiceWorker")
                 )
@@ -382,13 +341,10 @@ def browse_and_profile(
         for request_id, size in bytes_by_request.items():
             meta = meta_by_request.get(request_id)
             if meta is None:
-                # No matching http(s) responseReceived event was kept for this
-                # request (filtered out above, or a type of event we don't
-                # track)
-                # skip it instead of silently putting it as
-                # "unknown_origin", which would reintroduce the same
-                # non-network bytes we just filtered out
-                
+                # No matching http(s) responseReceived event for this request
+                # (filtered out above, or an event type we don't track).
+                # Skip it instead of labeling it "unknown_origin", which
+                # would just reintroduce the bytes we filtered out earlier.
                 continue
 
             rtype = meta.get("type", "unknown")

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Limpia ejecuciones de prueba que se hayan quedado a medias
+# Removes leftover test runs from results/
 # bash scripts/cleanup_local_results.sh
 
 set -euo pipefail

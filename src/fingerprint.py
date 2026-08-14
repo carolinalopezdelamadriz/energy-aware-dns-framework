@@ -2,16 +2,12 @@ import re
 import subprocess
 from dataclasses import dataclass
 
-# Same tcpdump text parsing approach as analyzer.py, just with -tt for
-# epoch timestamps instead of the default HH:MM:SS clock format, since
-# bursts need to be ordered and timed, not just added
-# 
-# Host is \S+ rather
-# than a strict dotted-quad so this matches IPv6 lines too (dns.quad9.net
-# resolves to IPv6 first here, and Chrome/httpx connect over it
-# 
-# an IPv4-only pattern silently dropped every one of those packets)
-
+# Same tcpdump text parsing approach as analyzer.py, but with -tt for epoch
+# timestamps instead of the default clock format, since bursts need to be
+# ordered and timed, not just counted. The host pattern is \S+ rather than a
+# strict dotted-quad so it also matches IPv6 lines - dns.quad9.net resolves
+# to IPv6 first on this network, and an IPv4-only pattern used to silently
+# drop every one of those packets.
 PACKET_RE = re.compile(
     r"^(\d+\.\d+) .*ethertype \S+ \([^)]*\), length (\d+): "
     r"(\S+)\.\d+ > (\S+)\.\d+:"
@@ -19,13 +15,10 @@ PACKET_RE = re.compile(
 
 
 def _local_ip_addresses() -> set[str]:
-    # Direction can't be inferred from "is this a private address" once
-    # IPv6 is in play
-
-    # home connections typically hand out globally routable IPv6 addresses with no NAT, so both sides of a flow can look
-    # "public"
-    # 
-    # Asking the OS which addresses are actually ours instead
+    # Direction can't be inferred from "is this a private address" once IPv6
+    # is in play: home routers hand out globally routable IPv6 addresses
+    # with no NAT, so both sides of a flow can look "public". Asking the OS
+    # which addresses are actually ours instead works for both IPv4 and IPv6.
     try:
         result = subprocess.run(["ifconfig"], capture_output=True, text=True, timeout=5)
     except Exception:
@@ -79,10 +72,8 @@ def _read_packets(pcap_path, ports=None):
 
 
 def extract_bursts(pcap_path, ports=None) -> list[Burst]:
-    """A burst is a maximal run of consecutive packets in the same direction
-    (Liberatore & Levine / Panchenko-style burst definition used in website
-    fingerprinting literature) - no time threshold, just direction changes.
-    """
+    """A burst is a run of consecutive packets in the same direction - it
+    ends only when the direction changes, there's no time threshold."""
     bursts: list[Burst] = []
     for ts, length, direction in _read_packets(pcap_path, ports=ports):
         if bursts and bursts[-1].direction == direction:

@@ -24,10 +24,9 @@ CONNECTION_MODES = {
 
 def _resolve_host_ips(hostname: str) -> List[str]:
     # IPv4 and IPv6 both included - dns.quad9.net resolves to IPv6 first on
-    # this machine and httpx/requests connect over whichever the OS prefers,
-    # so filtering down to IPv4-only here left the capture filter watching
-    # addresses the connection never actually used (0 bytes captured despite
-    # a real, successful DoH resolution)
+    # this machine, so an IPv4-only filter here used to watch addresses the
+    # connection never actually used, capturing 0 bytes for a real,
+    # successful resolution.
     try:
         addresses = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
     except socket.gaierror:
@@ -98,8 +97,8 @@ def run_dns_experiment(
         random_domains = [f"{random.randint(1, 100000)}.{domain}" for _ in range(repetitions)]
 
         if protocol == "dns":
-            # UDP, connectionless 
-            # there's no connection to reuse, so reuse_connection is a no-op here.
+            # UDP is connectionless, so there's nothing to reuse here -
+            # reuse_connection is a no-op for classic DNS.
             for random_domain in random_domains:
                 resolve_classic(random_domain)
         elif protocol == "doh":
@@ -119,9 +118,9 @@ def run_dns_experiment(
 
         time.sleep(1.5)
     finally:
-        # always stop tcpdump, even if a query raised 
-        # otherwise the process is orphaned and keeps capturing indefinitely 
-        # (found running for 33+ hours after a batch failure)
+        # Always stop tcpdump, even if a query raised - otherwise it's left
+        # running in the background (found one still going 33+ hours after
+        # a batch failure).
         stop_capture(capture)
 
     if protocol == "dns":
@@ -142,11 +141,10 @@ def run_dns_experiment(
     cfp_res = bytes_to_cfp(dns_bytes)
     pretty_print_cfp(f"DNS-{protocol} ({domain})", cfp_res)
 
-    # Burst-level features (packet sizes/timing grouped by direction) for the
-    # website-fingerprinting angle: 
-    # even when the query content is encrypted (DoH/DoQ), the shape of the burst sequence is still observable on the
-    # wire and may leak which domain was queried
-
+    # Burst-level features (packet sizes/timing grouped by direction), for
+    # the website-fingerprinting angle: even when the query is encrypted
+    # (DoH/DoQ), the shape of the bursts is still visible on the wire and
+    # may leak which domain was queried.
     burst = burst_features(pcap_path)
     burst_path = os.path.join(output_path, f"dns_{protocol}_{started_at}_bursts.json")
     write_json(burst_path, {
@@ -157,9 +155,7 @@ def run_dns_experiment(
     })
 
     # Splits dns_bytes into handshake / control / payload using the session
-    # keys captured above 
-    # the actual "control bytes / TLS handshake / QUIC
-    # signaling" breakdown, not just a total
+    # keys captured above, instead of just reporting one total.
     overhead = breakdown_overhead(pcap_path, protocol, keylog_path=keylog_path)
 
     result = {

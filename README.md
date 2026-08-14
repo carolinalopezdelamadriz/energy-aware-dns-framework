@@ -240,6 +240,10 @@ E[kWh] = E[J] / 3.6e6
 CO2[kgCO2e] = E[kWh] * co2_per_kwh
 ```
 
+## License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+
 ## Author
 
 Carolina López De La Madriz | Double Degree in Data Science and Engineering and Telecommunication Technologies Engineering

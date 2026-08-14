@@ -20,13 +20,11 @@ def _build_client(keylog_path=None, timeout=5):
 
 
 def _query_over_client(client, domain):
-    # RFC 8484 section 4.1 (GET): the query is a raw DNS wire-format message,
-    # base64url-encoded with padding stripped, in a "dns" parameter
-    # 
-    # Quad9's resolver only accepts this - not the "application/dns-json" shortcut
-    # some other public resolvers support, and it rejects HTTP/1.1 outright
-    # (section 5.2 requires HTTP/2), hence httpx(http2=True) instead of requests
-
+    # RFC 8484 (GET): the query is a raw DNS wire-format message,
+    # base64url-encoded with padding stripped, sent as a "dns" parameter.
+    # Quad9 only accepts this format, not the JSON shortcut some other
+    # resolvers support, and it also rejects HTTP/1.1 - that's why the
+    # client above uses httpx with http2=True instead of requests.
     query = dns.message.make_query(domain, dns.rdatatype.A)
     encoded_query = base64.urlsafe_b64encode(query.to_wire()).rstrip(b"=").decode("ascii")
     headers = {"accept": "application/dns-message"}
@@ -46,10 +44,9 @@ def resolve_doh(domain, keylog_path=None):
 
 
 def resolve_doh_batch(domains, keylog_path=None):
-    """Amortized mode: one client (one TCP+TLS connection, reused via
-    httpx's connection pooling) for every domain in the batch, instead of
-    paying the handshake cost per query. Each domain still gets its own
-    query/response - only the underlying connection is shared"""
+    """Amortized mode: one client, so one TCP+TLS connection reused via
+    httpx's connection pooling, for the whole batch instead of a new
+    handshake per query. Each domain still gets its own query/response."""
     results = []
     try:
         with _build_client(keylog_path) as client:
