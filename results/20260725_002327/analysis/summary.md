@@ -328,4 +328,3 @@ Which kind of content drives page weight, complementing who served it (origin, a
 - `fig_web_origin_bytes.png`
 - `fig_web_resource_types.png`
 - `fig_cfp_by_category.png`
-- `fig_dashboard.png`
