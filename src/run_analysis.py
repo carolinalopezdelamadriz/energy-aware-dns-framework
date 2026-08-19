@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 try:
     from scipy.stats import wilcoxon
-except ImportError:  
+except ImportError:
     wilcoxon = None
 from typing import Any
 
@@ -23,6 +23,20 @@ PROTOCOL_COLORS = {
     "doh": "#1565C0",
     "doq": "#6A1B9A",
 }
+
+# Display form for each protocol code, matching the capitalization used
+# throughout the thesis text (DoH, DoQ - not the all-caps DOH/DOQ that
+# .upper() would produce).
+PROTOCOL_LABELS = {
+    "dns": "DNS",
+    "doh": "DoH",
+    "doq": "DoQ",
+}
+
+
+def _protocol_label(protocol: str) -> str:
+    return PROTOCOL_LABELS.get((protocol or "").lower(), (protocol or "").upper())
+
 
 ORIGIN_COLORS = {
     "first_party": "#2E7D32",
@@ -415,9 +429,12 @@ def _category_color_map(plt, categories) -> dict[str, Any]:
     return {category: cmap(i % cmap.N) for i, category in enumerate(unique)}
 
 
-def _save_figure(plt, path: Path, dpi: int = 220) -> None:
+def _save_figure(plt, path: Path, dpi: int = 220, pad_inches: float = 0.08) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(path, dpi=dpi, bbox_inches="tight", facecolor=plt.gcf().get_facecolor())
+    # pad_inches keeps bbox_inches="tight" from cropping flush against the
+    # outermost glyph (e.g. a rotated y-axis label's last character), which
+    # otherwise looks clipped even though nothing is actually missing.
+    plt.savefig(path, dpi=dpi, bbox_inches="tight", pad_inches=pad_inches, facecolor=plt.gcf().get_facecolor())
     plt.close()
 
 
@@ -453,7 +470,7 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
     except ImportError:
         return False
 
-    labels = [row["protocol"].upper() for row in dns_summary]
+    labels = [_protocol_label(row["protocol"]) for row in dns_summary]
     byte_values = [row["median_bytes"] for row in dns_summary]
     co2_values = [row["median_co2_kg"] for row in dns_summary]
     colors = [PROTOCOL_COLORS.get(row["protocol"], "#455A64") for row in dns_summary]
@@ -524,7 +541,7 @@ def _plot_overhead_breakdown(path: Path, dns_summary: list[dict[str, Any]]) -> b
     except ImportError:
         return False
 
-    labels = [row["protocol"].upper() for row in dns_summary]
+    labels = [_protocol_label(row["protocol"]) for row in dns_summary]
     handshake = [row.get("avg_handshake_bytes", 0.0) for row in dns_summary]
     control = [row.get("avg_control_bytes", 0.0) for row in dns_summary]
     payload = [row.get("avg_payload_bytes", 0.0) for row in dns_summary]
@@ -538,7 +555,7 @@ def _plot_overhead_breakdown(path: Path, dns_summary: list[dict[str, Any]]) -> b
     for i, (h, c, p) in enumerate(zip(handshake, control, payload)):
         total = h + c + p
         if total > 0 and h > 0:
-            ax.text(i, total * 1.02, f"{h / total * 100:.0f}% handshake", ha="center", fontsize=8.5, color="#546E7A")
+            ax.text(i, total * 1.02, f"{h / total * 100:.1f}% handshake", ha="center", fontsize=8.5, color="#546E7A")
 
     ax.set_ylabel("Bytes per experiment (5 repetitions)")
     ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=3, fontsize=9)
@@ -609,7 +626,7 @@ def _plot_burst_patterns(path: Path, dns_bursts: list[dict[str, Any]], max_domai
                 label=entry.get("domain") or entry.get("site_label") or "?",
             )
             plotted += 1
-        ax.set_title(protocol.upper(), **PANEL_LABEL_STYLE)
+        ax.set_title(_protocol_label(protocol), **PANEL_LABEL_STYLE)
         ax.set_xlabel("Burst index")
         if ax is axes[0]:
             ax.set_ylabel("Burst size (bytes)")
@@ -829,7 +846,7 @@ def _plot_cfp_by_category(path: Path, web_category_summary: list[dict[str, Any]]
     color_map = _category_color_map(plt, categories)
     colors = [color_map[c] for c in categories]
 
-    fig, ax = plt.subplots(figsize=(max(5.5, len(categories) * 0.55), 3.6))
+    fig, ax = plt.subplots(figsize=(max(5.5, len(categories) * 0.55), 3.9))
     bars = ax.bar(
         range(len(categories)),
         values,
@@ -861,8 +878,11 @@ def _plot_cfp_by_category(path: Path, web_category_summary: list[dict[str, Any]]
         )
     fig.text(0.02, 0.02, "Error bars show the interquartile range (IQR)", fontsize=7.5, color="#78909C")
 
-    fig.subplots_adjust(bottom=0.24, top=0.9)
-    _save_figure(plt, path)
+    fig.subplots_adjust(left=0.17, bottom=0.22, top=0.9)
+    # This plot's rotated, mathtext y-axis label ("...kg CO$_2$e)") needs more
+    # top padding than the default: bbox_inches="tight" underestimates its
+    # extent slightly, which otherwise crops the last character.
+    _save_figure(plt, path, pad_inches=0.25)
     return True
 
 
@@ -925,8 +945,8 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
 
     fig.text(
         0.02, 0.02,
-        "Tracker/ads share is a high-confidence subset (precision over recall, see Issue "
-        "16): a lower bound, not an exhaustive count of tracking traffic",
+        "Tracker/ads share is a high-confidence subset (precision over recall): "
+        "a lower bound, not an exhaustive count of tracking traffic",
         fontsize=7.5, color="#78909C",
     )
     fig.subplots_adjust(left=0.14, right=0.96, top=0.96, bottom=0.2)
@@ -1190,11 +1210,11 @@ def _automatic_observations(
             worst = max(others, key=lambda row: row["median_bytes"])
             ratio = worst["median_bytes"] / dns_base["median_bytes"]
             observations.append(
-                f"{worst['protocol'].upper()} introduced the highest overhead vs classic DNS "
+                f"{_protocol_label(worst['protocol'])} introduced the highest overhead vs classic DNS "
                 f"({ratio:.0f}x median bytes)."
             )
         handshake_heavy = [
-            row["protocol"].upper() for row in dns_summary
+            _protocol_label(row["protocol"]) for row in dns_summary
             if (row.get("avg_handshake_bytes", 0.0) + row.get("avg_control_bytes", 0.0) + row.get("avg_payload_bytes", 0.0))
             and row.get("avg_handshake_bytes", 0.0)
             / (row.get("avg_handshake_bytes", 0.0) + row.get("avg_control_bytes", 0.0) + row.get("avg_payload_bytes", 0.0))
@@ -1244,7 +1264,7 @@ def _markdown_report(
     lines.append(f"- Date: {started_at[:10] if started_at else 'unknown'}")
     lines.append(f"- Resolver: {run_info.get('resolver_label') or 'unknown'}")
     lines.append(f"- Websites tested: {run_info.get('sites_tested', 0)}")
-    lines.append(f"- Protocols: {', '.join(p.upper() for p in protocols) or 'none'}")
+    lines.append(f"- Protocols: {', '.join(_protocol_label(p) for p in protocols) or 'none'}")
     lines.append(f"- DNS mode: {mode_label}")
     lines.append(
         f"- Repetitions per website: {config.get('dns_repetitions', '?')} (DNS), "
@@ -1338,7 +1358,7 @@ def _markdown_report(
             for row in dns_summary:
                 ratio = (row["median_bytes"] / dns_base) if dns_base else 0
                 lines.append(
-                    f"| {row['protocol'].upper()} | {row['samples']} | "
+                    f"| {_protocol_label(row['protocol'])} | {row['samples']} | "
                     f"{_format_bytes(row['median_bytes'])} | {_format_bytes(row['avg_bytes'])} | "
                     f"{_format_bytes(row['min_bytes'])} | {_format_bytes(row['max_bytes'])} | "
                     f"{_format_bytes(row['stdev_bytes'])} | {ratio:.1f}× |"
@@ -1349,7 +1369,7 @@ def _markdown_report(
             lines.append("| --- | ---: | ---: | ---: |")
             for row in dns_summary:
                 lines.append(
-                    f"| {row['protocol'].upper()} | {_format_bytes(row.get('median_bytes_per_query', 0.0))} | "
+                    f"| {_protocol_label(row['protocol'])} | {_format_bytes(row.get('median_bytes_per_query', 0.0))} | "
                     f"{row.get('median_energy_kwh_per_query', 0.0):.3e} | "
                     f"{row.get('median_co2_kg_per_query', 0.0):.3e} |"
                 )
@@ -1360,7 +1380,7 @@ def _markdown_report(
                 lines.append("| --- | ---: | ---: | ---: |")
                 for test in wilcoxon_tests:
                     lines.append(
-                        f"| {test['a'].upper()} vs {test['b'].upper()} | {test['n']} | "
+                        f"| {_protocol_label(test['a'])} vs {_protocol_label(test['b'])} | {test['n']} | "
                         f"{test['p_value']:.2e} | {test['effect_size_r']:.2f} |"
                     )
 
@@ -1375,13 +1395,13 @@ def _markdown_report(
                     total = hs + c + p
                     share = (hs / total * 100) if total else 0
                     lines.append(
-                        f"| {row['protocol'].upper()} | {_format_bytes(hs)} | {_format_bytes(c)} | "
+                        f"| {_protocol_label(row['protocol'])} | {_format_bytes(hs)} | {_format_bytes(c)} | "
                         f"{_format_bytes(p)} | {share:.1f}% |"
                     )
                 lines.extend(["", "| Protocol | Avg bursts | Avg burst bytes |", "| --- | ---: | ---: |"])
                 for row in dns_summary:
                     lines.append(
-                        f"| {row['protocol'].upper()} | {row['avg_num_bursts']:.1f} | "
+                        f"| {_protocol_label(row['protocol'])} | {row['avg_num_bursts']:.1f} | "
                         f"{_format_bytes(row['avg_avg_burst_bytes'])} |"
                     )
                 lines.extend(
@@ -1404,7 +1424,7 @@ def _markdown_report(
             )
             for row in flagged_dns_rows:
                 lines.append(
-                    f"| {row.get('site_label', '?')} | {row.get('protocol', '?').upper()} | "
+                    f"| {row.get('site_label', '?')} | {_protocol_label(row.get('protocol', '?'))} | "
                     f"{row.get('failed_queries', '?')}/{row.get('repetitions', '?')} | "
                     f"{_format_bytes(_float(row, 'bytes'))} |"
                 )
@@ -1589,7 +1609,6 @@ def analyze_run(run_dir: str | Path):
     # amortized-only runs fall back to whatever mode is actually present.
     primary_mode = "cold_start" if "cold_start" in dns_summary_by_mode else next(iter(dns_summary_by_mode), None)
     dns_summary = dns_summary_by_mode.get(primary_mode, [])
-    wilcoxon_tests = wilcoxon_tests_by_mode.get(primary_mode, [])
 
     run_status = _run_status(manifest, dns_rows, web_rows)
     timing = _run_timing(dns_rows, web_rows, sites_tested)

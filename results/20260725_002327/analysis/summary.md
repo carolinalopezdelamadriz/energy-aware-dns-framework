@@ -7,7 +7,7 @@ Run directory: `results/20260725_002327`
 - Date: 2026-07-25
 - Resolver: Quad9
 - Websites tested: 100
-- Protocols: DNS, DOH, DOQ
+- Protocols: DNS, DoH, DoQ
 - DNS mode: both
 - Repetitions per website: 5 (DNS), 3 (web)
 - Capture: Selenium + CDP + tcpdump
@@ -30,8 +30,8 @@ Warnings:
 
 ## Automatic observations
 
-- DOQ introduced the highest overhead vs classic DNS (40x median bytes).
-- Most DOH/DOQ traffic is connection setup (handshake), not the query itself.
+- DoQ introduced the highest overhead vs classic DNS (40x median bytes).
+- Most DoH/DoQ traffic is connection setup (handshake), not the query itself.
 - Streaming generated the highest traffic per page.
 
 ## Methodological notes
@@ -52,37 +52,37 @@ Warnings:
 | Protocol | Samples | Median bytes | Mean bytes | Min | Max | Std dev | Overhead vs DNS |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | DNS | 100 | 1.1 KB | 1.1 KB | 818 B | 1.6 KB | 99 B | 1.0× |
-| DOH | 100 | 42.3 KB | 43.0 KB | 38.7 KB | 65.2 KB | 3.8 KB | 39.3× |
-| DOQ | 99 | 43.2 KB | 45.3 KB | 42.8 KB | 53.7 KB | 3.0 KB | 40.1× |
+| DoH | 100 | 42.3 KB | 43.0 KB | 38.7 KB | 65.2 KB | 3.8 KB | 39.3× |
+| DoQ | 99 | 43.2 KB | 45.3 KB | 42.8 KB | 53.7 KB | 3.0 KB | 40.1× |
 
 #### Query cost
 
 | Protocol | Median bytes/query | Median energy/query (kWh) | Median CO₂/query (kg) |
 | --- | ---: | ---: | ---: |
 | DNS | 220 B | 1.300e-08 | 3.680e-09 |
-| DOH | 8.5 KB | 5.110e-07 | 1.446e-07 |
-| DOQ | 8.6 KB | 5.215e-07 | 1.476e-07 |
+| DoH | 8.5 KB | 5.110e-07 | 1.446e-07 |
+| DoQ | 8.6 KB | 5.215e-07 | 1.476e-07 |
 
 #### Statistical validation
 
 | Comparison | Site pairs | p-value | Effect size (rank-biserial r) |
 | --- | ---: | ---: | ---: |
-| DNS vs DOH | 100 | 3.90e-18 | -1.00 |
-| DOH vs DOQ | 99 | 1.53e-07 | -0.61 |
+| DNS vs DoH | 100 | 3.90e-18 | -1.00 |
+| DoH vs DoQ | 99 | 1.53e-07 | -0.61 |
 
 #### Traffic composition
 
 | Protocol | Handshake | Control | Payload | Handshake share |
 | --- | ---: | ---: | ---: | ---: |
 | DNS | 0 B | 422 B | 684 B | 0.0% |
-| DOH | 33.5 KB | 4.4 KB | 5.1 KB | 77.9% |
-| DOQ | 42.4 KB | 0 B | 2.9 KB | 93.5% |
+| DoH | 33.5 KB | 4.4 KB | 5.1 KB | 77.9% |
+| DoQ | 42.4 KB | 0 B | 2.9 KB | 93.5% |
 
 | Protocol | Avg bursts | Avg burst bytes |
 | --- | ---: | ---: |
 | DNS | 9.9 | 122 B |
-| DOH | 57.1 | 774 B |
-| DOQ | 40.8 | 1.1 KB |
+| DoH | 57.1 | 774 B |
+| DoQ | 40.8 | 1.1 KB |
 
 DoQ's payload figure includes a small amount of connection-maintenance traffic and should be interpreted as approximate.
 
@@ -93,37 +93,37 @@ DoQ's payload figure includes a small amount of connection-maintenance traffic a
 | Protocol | Samples | Median bytes | Mean bytes | Min | Max | Std dev | Overhead vs DNS |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | DNS | 100 | 1.1 KB | 1.1 KB | 820 B | 1.6 KB | 99 B | 1.0× |
-| DOH | 100 | 9.8 KB | 11.0 KB | 9.4 KB | 19.1 KB | 1.8 KB | 9.1× |
-| DOQ | 98 | 10.1 KB | 10.7 KB | 9.9 KB | 15.4 KB | 1.7 KB | 9.4× |
+| DoH | 100 | 9.8 KB | 11.0 KB | 9.4 KB | 19.1 KB | 1.8 KB | 9.1× |
+| DoQ | 98 | 10.1 KB | 10.7 KB | 9.9 KB | 15.4 KB | 1.7 KB | 9.4× |
 
 #### Query cost
 
 | Protocol | Median bytes/query | Median energy/query (kWh) | Median CO₂/query (kg) |
 | --- | ---: | ---: | ---: |
 | DNS | 220 B | 1.300e-08 | 3.678e-09 |
-| DOH | 2.0 KB | 1.189e-07 | 3.366e-08 |
-| DOQ | 2.0 KB | 1.219e-07 | 3.450e-08 |
+| DoH | 2.0 KB | 1.189e-07 | 3.366e-08 |
+| DoQ | 2.0 KB | 1.219e-07 | 3.450e-08 |
 
 #### Statistical validation
 
 | Comparison | Site pairs | p-value | Effect size (rank-biserial r) |
 | --- | ---: | ---: | ---: |
-| DNS vs DOH | 100 | 3.89e-18 | -1.00 |
-| DOH vs DOQ | 98 | 1.95e-01 | 0.15 |
+| DNS vs DoH | 100 | 3.89e-18 | -1.00 |
+| DoH vs DoQ | 98 | 1.95e-01 | 0.15 |
 
 #### Traffic composition
 
 | Protocol | Handshake | Control | Payload | Handshake share |
 | --- | ---: | ---: | ---: | ---: |
 | DNS | 0 B | 422 B | 685 B | 0.0% |
-| DOH | 7.2 KB | 1.3 KB | 2.5 KB | 65.7% |
-| DOQ | 8.6 KB | 0 B | 2.1 KB | 80.7% |
+| DoH | 7.2 KB | 1.3 KB | 2.5 KB | 65.7% |
+| DoQ | 8.6 KB | 0 B | 2.1 KB | 80.7% |
 
 | Protocol | Avg bursts | Avg burst bytes |
 | --- | ---: | ---: |
 | DNS | 9.9 | 122 B |
-| DOH | 21.0 | 536 B |
-| DOQ | 17.1 | 639 B |
+| DoH | 21.0 | 536 B |
+| DoQ | 17.1 | 639 B |
 
 DoQ's payload figure includes a small amount of connection-maintenance traffic and should be interpreted as approximate.
 
@@ -133,9 +133,9 @@ DoQ's payload figure includes a small amount of connection-maintenance traffic a
 
 | Site | Protocol | Failed / Repetitions | Bytes (excluded) |
 | --- | --- | ---: | ---: |
-| aliexpress | DOQ | 1/5 | 10.4 KB |
-| medlineplus | DOQ | 5/5 | 97.3 KB |
-| medlineplus | DOQ | 2/5 | 9.9 KB |
+| aliexpress | DoQ | 1/5 | 10.4 KB |
+| medlineplus | DoQ | 5/5 | 97.3 KB |
+| medlineplus | DoQ | 2/5 | 9.9 KB |
 
 Full detail: `dns_flagged_experiments.csv` (rows stay in `dns_results.csv` too).
 
