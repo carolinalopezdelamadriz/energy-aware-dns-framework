@@ -209,14 +209,21 @@ __marimo__/
 # macOS
 .DS_Store
 
-# Material local (correos, borradores, apuntes) — no subir al repo
-docs/
+# Material local (correos, borradores, apuntes) — no subir al repo.
+# Only this subfolder is ignored, not all of docs/, so public docs can
+# still live directly under docs/.
+docs/apuntes_personales/
 
 # Configuración local de herramientas de desarrollo — no subir al repo
 .claude/
 
-# Capturas brutas de experimentos: se quedan en local
+# Raw experiment captures: never publish these. A pcap is raw network
+# traffic and a keylog is the TLS/QUIC session secrets needed to decrypt
+# it - together they can reveal real browsing activity, so both are
+# excluded everywhere, not just under results/.
 *.pcap
+*.pcapng
+*.keylog
 
 # Cache de matplotlib dentro de resultados
 **/.matplotlib/

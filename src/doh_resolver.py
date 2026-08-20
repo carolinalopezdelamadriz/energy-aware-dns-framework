@@ -34,8 +34,11 @@ def _query_over_client(client, domain):
     return [rdata.to_text() for rrset in answer.answer for rdata in rrset]
 
 
-def resolve_doh(domain, keylog_path=None):
-    # Cold-start: a fresh client (fresh TCP+TLS connection) per call
+def resolve_doh(domain: str, keylog_path: str | None = None) -> list[str]:
+    """DNS over HTTPS (RFC 8484) A-record lookup against DOH_RESOLVER_URL.
+    Cold-start: opens a fresh TCP+TLS client per call. Returns the resolved
+    addresses as text, same shape as dns_resolver.resolve_classic(), or an
+    empty list on any failure (connection, HTTP, or DNS-level)."""
     try:
         with _build_client(keylog_path) as client:
             return _query_over_client(client, domain)

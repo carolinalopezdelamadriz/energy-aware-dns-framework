@@ -10,7 +10,7 @@ from dns_resolver import CLASSIC_DNS_RESOLVER, resolve_classic
 from doh_resolver import DOH_FALLBACK_IPS, DOH_RESOLVER_HOST, DOH_RESOLVER_NAME, resolve_doh, resolve_doh_batch
 from doq_resolver import DEFAULT_DOQ_RESOLVER, get_doq_resolver, resolve_doq, resolve_doq_batch
 from cfp import bytes_to_cfp, pretty_print_cfp
-from fingerprint import burst_features
+from burst_analysis import burst_features
 from overhead_breakdown import breakdown_overhead
 from results import append_csv_row, ensure_output_dir, write_json
 

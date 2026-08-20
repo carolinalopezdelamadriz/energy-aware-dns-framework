@@ -1,3 +1,9 @@
+# Extracts burst-level traffic features (packet groupings by direction, with
+# their sizes and timing) from a pcap. This is descriptive only: it does not
+# classify or identify traffic, and there is no fingerprinting model or
+# classifier here. The features are meant as a basis for that kind of
+# analysis, not an implementation of it.
+
 import re
 import subprocess
 from dataclasses import dataclass
@@ -71,11 +77,13 @@ def _read_packets(pcap_path, ports=None):
     return packets
 
 
-def extract_bursts(pcap_path, ports=None) -> list[Burst]:
+def _group_packets_into_bursts(packets: list[tuple[float, int, str]]) -> list[Burst]:
     """A burst is a run of consecutive packets in the same direction - it
-    ends only when the direction changes, there's no time threshold."""
+    ends only when the direction changes, there's no time threshold. Kept
+    separate from extract_bursts() so this grouping logic can be tested
+    directly, without needing a real pcap file."""
     bursts: list[Burst] = []
-    for ts, length, direction in _read_packets(pcap_path, ports=ports):
+    for ts, length, direction in packets:
         if bursts and bursts[-1].direction == direction:
             last = bursts[-1]
             last.packets += 1
@@ -84,6 +92,10 @@ def extract_bursts(pcap_path, ports=None) -> list[Burst]:
         else:
             bursts.append(Burst(direction=direction, packets=1, bytes=length, start_ts=ts, end_ts=ts))
     return bursts
+
+
+def extract_bursts(pcap_path, ports=None) -> list[Burst]:
+    return _group_packets_into_bursts(_read_packets(pcap_path, ports=ports))
 
 
 def burst_features(pcap_path, ports=None, sequence_len: int = 5) -> dict:

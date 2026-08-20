@@ -1,5 +1,4 @@
 import subprocess
-from collections import defaultdict
 
 # TLS record content types (RFC 8446 section 5.1)
 TLS_HANDSHAKE_TYPES = {"20", "22"}  # ChangeCipherSpec, Handshake

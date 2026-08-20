@@ -6,7 +6,7 @@ from capture import start_capture, stop_capture
 from browser import open_website, browse_and_profile
 from analyzer import analyze_total_bytes, analyze_bytes_in_window
 from cfp import bytes_to_cfp, pretty_print_cfp
-from fingerprint import burst_features
+from burst_analysis import burst_features
 from overhead_breakdown import breakdown_web_overhead
 from results import append_csv_row, ensure_output_dir, write_json
 
@@ -75,7 +75,7 @@ def run_web_experiment(
     # it's a residual we can't fully explain.
     web_overhead = breakdown_web_overhead(pcap_path, keylog_path=keylog_path, ports=chrome_ports)
 
-    # Same burst-level features as the DNS side (see fingerprint.py), scoped
+    # Same burst-level features as the DNS side (see burst_analysis.py), scoped
     # to Chrome's own ports for the same reason as above.
     burst = burst_features(pcap_path, ports=chrome_ports)
     burst_path = os.path.join(output_path, f"web_{started_at}_bursts.json")

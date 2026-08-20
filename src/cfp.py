@@ -1,8 +1,15 @@
+# Converts measured network bytes into an energy and CO2 estimate using a
+# linear, configurable model (see the thesis, Chapter 3). This is a
+# model-based estimate, not a direct measurement of energy consumption -
+# nothing here measures power draw or reads a meter.
+
 from dataclasses import dataclass
 
 
 @dataclass
 class CFPResult:
+    """bytes: the measured input. energy_kwh/co2_kg: the model's estimate
+    from that input, not independently measured quantities."""
     bytes: int
     energy_kwh: float
     co2_kg: float
@@ -25,6 +32,11 @@ def bytes_to_cfp(
     energy_per_byte_j: float = DEFAULT_ENERGY_PER_BYTE_J,
     co2_per_kwh: float = DEFAULT_CO2_PER_KWH,
 ) -> CFPResult:
+    """Estimates energy and CO2 from a byte count using a linear model:
+    energy_j = total_bytes * energy_per_byte_j, then converted to kWh and
+    to CO2 with co2_per_kwh. Both constants are swappable so the same
+    formula can be re-run under a different grid or energy-intensity
+    assumption without touching this function."""
     if total_bytes < 0:
         raise ValueError("total_bytes must be a non-negative number")
 

@@ -170,8 +170,13 @@ def _resolve_doq_kdig(domain, host):
     return True
 
 
-def resolve_doq(domain, resolver_name=DEFAULT_DOQ_RESOLVER, use_kdig_fallback=True, keylog_path=None):
-    # single fixed resolver
+def resolve_doq(domain: str, resolver_name=DEFAULT_DOQ_RESOLVER, use_kdig_fallback: bool = True, keylog_path: str | None = None) -> bool:
+    """DNS over QUIC (RFC 9250) A-record lookup against the given resolver.
+    Unlike resolve_classic()/resolve_doh(), this returns a bool (whether a
+    valid response was received), not the resolved addresses - aioquic's
+    response here is only validated (_validate_dns_response), not parsed
+    into records, and the kdig fallback path has no structured response to
+    return either."""
     resolver = get_doq_resolver(resolver_name)
 
     try:
