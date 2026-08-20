@@ -458,10 +458,10 @@ def _annotate_log_bars(ax, bars, values, formatter=_format_bytes):
         )
 
 
-def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]]) -> bool:
-    """Two-panel figure: median bytes per resolution (log scale) next to
-    median CO2 per resolution, so the two bar charts share one figure and
-    one caption instead of two nearly identical ones."""
+def _plot_dns_bytes_by_protocol(path: Path, dns_summary: list[dict[str, Any]]) -> bool:
+    """Median bytes per resolution, by protocol (log scale). Split out from
+    what used to be one two-panel figure, so this and the CO2 counterpart
+    below can each get their own caption as subfigures in the thesis."""
     if not dns_summary:
         return False
 
@@ -472,25 +472,24 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
 
     labels = [_protocol_label(row["protocol"]) for row in dns_summary]
     byte_values = [row["median_bytes"] for row in dns_summary]
-    co2_values = [row["median_co2_kg"] for row in dns_summary]
     colors = [PROTOCOL_COLORS.get(row["protocol"], "#455A64") for row in dns_summary]
 
-    fig, (ax_bytes, ax_co2) = plt.subplots(1, 2, figsize=(6.6, 3.4))
+    fig, ax = plt.subplots(figsize=(3.6, 3.4))
 
-    bars = ax_bytes.bar(labels, byte_values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
-    ax_bytes.set_ylabel("Bytes per resolution (median)")
-    ax_bytes.set_yscale("log")
-    ax_bytes.grid(axis="y", linestyle="--", alpha=0.9)
-    ax_bytes.spines["top"].set_visible(False)
-    ax_bytes.spines["right"].set_visible(False)
-    _annotate_log_bars(ax_bytes, bars, byte_values)
+    bars = ax.bar(labels, byte_values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
+    ax.set_ylabel("Bytes per resolution (median)")
+    ax.set_yscale("log")
+    ax.grid(axis="y", linestyle="--", alpha=0.9)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    _annotate_log_bars(ax, bars, byte_values)
     if len(byte_values) >= 2 and byte_values[0] > 0:
         ratio = byte_values[1] / byte_values[0]
-        ax_bytes.text(
+        ax.text(
             0.03,
             0.97,
             f"DoH ≈ {ratio:.0f}× classic DNS",
-            transform=ax_bytes.transAxes,
+            transform=ax.transAxes,
             ha="left",
             va="top",
             fontsize=9,
@@ -498,25 +497,91 @@ def _plot_dns_protocol_comparison(path: Path, dns_summary: list[dict[str, Any]])
             bbox={"boxstyle": "round,pad=0.35", "facecolor": "#ECEFF1", "edgecolor": "none"},
         )
 
-    co2_bars = ax_co2.bar(labels, co2_values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
-    ax_co2.set_ylabel("kg CO$_2$e (5 repetitions, median)")
-    ax_co2.grid(axis="y", linestyle="--", alpha=0.9)
-    ax_co2.spines["top"].set_visible(False)
-    ax_co2.spines["right"].set_visible(False)
+    fig.subplots_adjust(top=0.94, bottom=0.16)
+    _save_figure(plt, path)
+    return True
+
+
+def _plot_dns_co2_by_protocol(path: Path, dns_summary: list[dict[str, Any]]) -> bool:
+    """Median CO2 per resolution, by protocol - same energy/CO2 model used
+    throughout the run (Chapter 3). Counterpart to the bytes plot above."""
+    if not dns_summary:
+        return False
+
+    try:
+        plt = _setup_matplotlib(path.parent)
+    except ImportError:
+        return False
+
+    labels = [_protocol_label(row["protocol"]) for row in dns_summary]
+    co2_values = [row["median_co2_kg"] for row in dns_summary]
+    colors = [PROTOCOL_COLORS.get(row["protocol"], "#455A64") for row in dns_summary]
+
+    fig, ax = plt.subplots(figsize=(3.6, 3.4))
+
+    co2_bars = ax.bar(labels, co2_values, color=colors, width=0.58, edgecolor="white", linewidth=1.2)
+    ax.set_ylabel("kg CO$_2$e (5 repetitions, median)")
+    ax.grid(axis="y", linestyle="--", alpha=0.9)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
     for bar, value in zip(co2_bars, co2_values):
-        ax_co2.text(
+        ax.text(
             bar.get_x() + bar.get_width() / 2, bar.get_height(), f"{value:.2e}",
             ha="center", va="bottom", fontsize=9, color="#37474F",
         )
 
-    fig.subplots_adjust(top=0.94, bottom=0.16, wspace=0.32)
-    fig.text(
-        0.02,
-        0.03,
-        "Log scale (left) · same energy/CO2 model as the rest of the run (right)",
-        fontsize=8,
-        color="#78909C",
-    )
+    fig.subplots_adjust(top=0.94, bottom=0.16)
+    _save_figure(plt, path)
+    return True
+
+
+def _plot_connection_reuse_comparison(path: Path, dns_summary_by_mode: dict[str, list[dict[str, Any]]]) -> bool:
+    """Cold-start vs. amortized overhead-vs-DNS ratio, for DoH and DoQ side
+    by side. DNS itself is left out: it has no connection to reuse, so its
+    ratio is always 1x in both modes and would just be a flat line."""
+    cold = {row["protocol"]: row for row in dns_summary_by_mode.get("cold_start", [])}
+    warm = {row["protocol"]: row for row in dns_summary_by_mode.get("amortized", [])}
+    protocols = [p for p in ("doh", "doq") if p in cold and p in warm]
+    if not protocols:
+        return False
+
+    try:
+        plt = _setup_matplotlib(path.parent)
+    except ImportError:
+        return False
+
+    dns_cold = cold.get("dns", {}).get("median_bytes")
+    dns_warm = warm.get("dns", {}).get("median_bytes")
+    if not dns_cold or not dns_warm:
+        return False
+
+    cold_ratios = [cold[p]["median_bytes"] / dns_cold for p in protocols]
+    warm_ratios = [warm[p]["median_bytes"] / dns_warm for p in protocols]
+    labels = [_protocol_label(p) for p in protocols]
+
+    x = range(len(protocols))
+    width = 0.32
+    fig, ax = plt.subplots(figsize=(4.4, 3.4))
+    bars_cold = ax.bar([i - width / 2 for i in x], cold_ratios, width, label="Cold start", color="#C62828")
+    bars_warm = ax.bar([i + width / 2 for i in x], warm_ratios, width, label="Amortized", color="#2E7D32")
+
+    for bars in (bars_cold, bars_warm):
+        for bar, value in zip(bars, [b.get_height() for b in bars]):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2, bar.get_height(), f"{value:.1f}×",
+                ha="center", va="bottom", fontsize=9, color="#37474F",
+            )
+
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Overhead vs. classic DNS")
+    ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=2, fontsize=9)
+    ax.grid(axis="y", linestyle="--", alpha=0.9)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.margins(y=0.18)
+
+    fig.subplots_adjust(top=0.94, bottom=0.24)
     _save_figure(plt, path)
     return True
 
@@ -564,14 +629,10 @@ def _plot_overhead_breakdown(path: Path, dns_summary: list[dict[str, Any]]) -> b
     ax.spines["right"].set_visible(False)
     ax.margins(y=0.12)
 
-    fig.subplots_adjust(top=0.92, bottom=0.32)
-    fig.text(
-        0.02, 0.02,
-        "Decrypted with saved TLS/QUIC session keys · DoQ short-header bytes mix\n"
-        "real response data with a small, undistinguished share of 1-RTT ACKs",
-        fontsize=7.5, color="#78909C",
-    )
-    _save_figure(plt, path)
+    fig.subplots_adjust(top=0.92, bottom=0.22)
+    # Same rotated-ylabel clipping issue as the CO2-by-category plot: give it
+    # extra padding instead of letting bbox_inches="tight" crop it.
+    _save_figure(plt, path, pad_inches=0.2)
     return True
 
 
@@ -876,8 +937,6 @@ def _plot_cfp_by_category(path: Path, web_category_summary: list[dict[str, Any]]
             fontsize=8,
             color="#37474F",
         )
-    fig.text(0.02, 0.02, "Error bars show the interquartile range (IQR)", fontsize=7.5, color="#78909C")
-
     fig.subplots_adjust(left=0.17, bottom=0.22, top=0.9)
     # This plot's rotated, mathtext y-axis label ("...kg CO$_2$e)") needs more
     # top padding than the default: bbox_inches="tight" underestimates its
@@ -943,13 +1002,7 @@ def _plot_origin_distribution(path: Path, origin_summary: list[dict[str, Any]]) 
             color="#37474F",
         )
 
-    fig.text(
-        0.02, 0.02,
-        "Tracker/ads share is a high-confidence subset (precision over recall): "
-        "a lower bound, not an exhaustive count of tracking traffic",
-        fontsize=7.5, color="#78909C",
-    )
-    fig.subplots_adjust(left=0.14, right=0.96, top=0.96, bottom=0.2)
+    fig.subplots_adjust(left=0.14, right=0.96, top=0.96, bottom=0.12)
     _save_figure(plt, path)
     return True
 
@@ -1702,15 +1755,27 @@ def analyze_run(run_dir: str | Path):
 
     plot_specs = [
         (
-            "fig_dns_avg_bytes.png",
-            lambda: _plot_dns_protocol_comparison(
-                analysis_dir / "fig_dns_avg_bytes.png", dns_summary
+            "fig_dns_bytes_by_protocol.png",
+            lambda: _plot_dns_bytes_by_protocol(
+                analysis_dir / "fig_dns_bytes_by_protocol.png", dns_summary
+            ),
+        ),
+        (
+            "fig_dns_co2_by_protocol.png",
+            lambda: _plot_dns_co2_by_protocol(
+                analysis_dir / "fig_dns_co2_by_protocol.png", dns_summary
             ),
         ),
         (
             "fig_overhead_breakdown.png",
             lambda: _plot_overhead_breakdown(
                 analysis_dir / "fig_overhead_breakdown.png", dns_summary
+            ),
+        ),
+        (
+            "fig_connection_reuse_comparison.png",
+            lambda: _plot_connection_reuse_comparison(
+                analysis_dir / "fig_connection_reuse_comparison.png", dns_summary_by_mode
             ),
         ),
         (
