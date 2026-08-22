@@ -124,7 +124,7 @@ python3 src/main.py \
   --interface en0
 ```
 
-This writes a new timestamped folder under `results/` containing the pcap captures, key logs, and a `dns_results.csv` row per protocol. See [Analysing a run](#analysing-a-run) for how to turn that into summaries and figures.
+This writes a new timestamped folder under `results/` containing the pcap captures, key logs, and a `dns_results.csv` row per protocol. See [Analyzing a run](#analyzing-a-run) for how to turn that into summaries and figures.
 
 ## Running experiments
 
