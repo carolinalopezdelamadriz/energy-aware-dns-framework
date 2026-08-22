@@ -927,10 +927,13 @@ def _plot_cfp_by_category(path: Path, web_category_summary: list[dict[str, Any]]
     ax.margins(y=0.15)
 
     ymax = max(v + err for v, err in zip(values, upper_err)) or 1
-    for bar, value in zip(bars, values):
+    # Label above the error bar's own cap, not just above the bar itself -
+    # otherwise the text sits inside (or right on top of) the error bar
+    # whenever the IQR is wide, which is illegible.
+    for bar, value, err in zip(bars, values, upper_err):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + ymax * 0.03,
+            bar.get_height() + err + ymax * 0.03,
             f"{value:.2e}",
             ha="center",
             va="bottom",
