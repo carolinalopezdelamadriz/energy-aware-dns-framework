@@ -232,7 +232,7 @@ This is a **model-based estimate**, not a direct measurement of energy consumpti
 - Every run gets its own timestamped ID and a `manifest.json` recording the configuration it was run with.
 - Raw and intermediate results (pcaps, key logs, per-visit JSON, per-experiment CSV rows) are written to `results/<run_id>/` and kept locally.
 - **Analysis can be rerun from an existing run without repeating the network experiment** — `--mode analyze` only reads already-saved CSVs; it never triggers a new capture. This is the same separation the thesis describes: experiment → captured data → analysis → figures/summaries, each a distinct step.
-- A handful of reference runs (CSVs, summaries, and figures only — never raw pcaps or key logs) are kept in version control under `results/` so the pipeline can be reviewed without repeating the full campaign; see [Security and privacy](#security-and-privacy) for why the raw captures themselves are not published.
+- A handful of reference runs (CSVs, summaries, and figures) are kept in version control under `results/` so the pipeline can be reviewed without repeating the full campaign. The raw pcaps of the definitive run, `results/20260725_002327/`, are also published for that same reason — see [Security and privacy](#security-and-privacy) for what is and isn't included, and why.
 
 ## Limitations
 
@@ -258,7 +258,9 @@ This framework captures real network traffic and, for encrypted protocols, expor
 - **PCAP files** contain the raw browsing traffic of whichever machine ran the experiment.
 - **Key log files** (`.keylog`) contain the session secrets needed to decrypt that traffic. A key log next to its pcap is enough to read the encrypted capture in full.
 
-Neither is published in this repository. `*.pcap`, `*.pcapng`, and `*.keylog` are excluded via `.gitignore` everywhere in the repository, not only under `results/`. If you fork or extend this framework, keep that exclusion, and treat any pcap/keylog pair you generate as sensitive data.
+By default, neither is published: `*.pcap`, `*.pcapng`, and `*.keylog` are excluded via `.gitignore` everywhere in the repository, not only under `results/`. If you fork or extend this framework, keep that exclusion, and treat any pcap/keylog pair you generate as sensitive data.
+
+**Exception:** the raw pcaps of the definitive run (`results/20260725_002327/`, the one the thesis and the accompanying article are based on) are published under `results/20260725_002327/` as supplementary material, to support independent verification of the byte counts reported in both. This is a deliberate, narrow exception, not a change to the default: only that one run's pcaps are included, and its `.keylog` files stay excluded like everywhere else — without them, the published pcaps show packet sizes and timing but not decrypted TLS/QUIC content.
 
 ## License
 

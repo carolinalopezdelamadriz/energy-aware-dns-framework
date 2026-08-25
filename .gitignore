@@ -291,6 +291,14 @@ results/**/*
 # Re-ignorar capturas grandes incluso dentro de las ejecuciones versionadas
 results/**/*.pcap
 
+# Excepción: las capturas crudas del run definitivo (20260725_002327) se
+# publican junto con el artículo, con el visto bueno explícito de la
+# tutora (2026-08-25). Los .keylog de este mismo run se mantienen
+# excluidos por la regla de arriba: permitirían descifrar TLS/QUIC y ver
+# el contenido real de las páginas visitadas, y solo se acordó publicar
+# los pcap.
+!results/20260725_002327/*.pcap
+
 # Re-ignorar ficheros locales/cache después de las excepciones anteriores
 results/**/.DS_Store
 results/**/.matplotlib/
