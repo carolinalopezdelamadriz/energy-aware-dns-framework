@@ -1,6 +1,6 @@
 # Analysis summary
 
-Run directory: `results/20260725_002327`
+Run directory: `results/20260725_002327_final` (run ID `20260725_002327`, folder renamed to mark it as the definitive run)
 
 ## Run configuration
 
