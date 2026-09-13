@@ -1,0 +1,628 @@
+{
+  "run_id": "20260717_004628",
+  "started_at": "2026-07-17T00:46:28+0200",
+  "python": "3.11.14 (main, Oct  9 2025, 16:16:55) [Clang 16.0.0 (clang-1600.0.26.6)]",
+  "platform": "macOS-15.7-x86_64-i386-64bit",
+  "git_commit": "76c1f7a",
+  "config": {
+    "sites_file": "data/sites_100.csv",
+    "protocols": [
+      "dns",
+      "doh",
+      "doq"
+    ],
+    "dns_repetitions": 5,
+    "web_repetitions": 1,
+    "interface": "en0",
+    "use_cdp": true,
+    "skip_dns": false,
+    "skip_web": false,
+    "doq_resolver": "quad9",
+    "headless": true,
+    "fresh_profile": true,
+    "site_delay": 5,
+    "connection_mode": "cold_start"
+  },
+  "sites": [
+    {
+      "label": "bbc",
+      "category": "news",
+      "domain": "bbc.com",
+      "url": "https://www.bbc.com"
+    },
+    {
+      "label": "guardian",
+      "category": "news",
+      "domain": "theguardian.com",
+      "url": "https://www.theguardian.com"
+    },
+    {
+      "label": "cnn",
+      "category": "news",
+      "domain": "cnn.com",
+      "url": "https://www.cnn.com"
+    },
+    {
+      "label": "reuters",
+      "category": "news",
+      "domain": "reuters.com",
+      "url": "https://www.reuters.com"
+    },
+    {
+      "label": "apnews",
+      "category": "news",
+      "domain": "apnews.com",
+      "url": "https://apnews.com"
+    },
+    {
+      "label": "elpais",
+      "category": "news",
+      "domain": "elpais.com",
+      "url": "https://elpais.com"
+    },
+    {
+      "label": "elmundo",
+      "category": "news",
+      "domain": "elmundo.es",
+      "url": "https://www.elmundo.es"
+    },
+    {
+      "label": "abc_es",
+      "category": "news",
+      "domain": "abc.es",
+      "url": "https://www.abc.es"
+    },
+    {
+      "label": "lavanguardia",
+      "category": "news",
+      "domain": "lavanguardia.com",
+      "url": "https://www.lavanguardia.com"
+    },
+    {
+      "label": "20minutos",
+      "category": "news",
+      "domain": "20minutos.es",
+      "url": "https://www.20minutos.es"
+    },
+    {
+      "label": "santander",
+      "category": "banking",
+      "domain": "santander.com",
+      "url": "https://www.santander.com"
+    },
+    {
+      "label": "bbva",
+      "category": "banking",
+      "domain": "bbva.com",
+      "url": "https://www.bbva.com"
+    },
+    {
+      "label": "caixabank",
+      "category": "banking",
+      "domain": "caixabank.es",
+      "url": "https://www.caixabank.es"
+    },
+    {
+      "label": "ing_es",
+      "category": "banking",
+      "domain": "ing.es",
+      "url": "https://www.ing.es"
+    },
+    {
+      "label": "bankinter",
+      "category": "banking",
+      "domain": "bankinter.com",
+      "url": "https://www.bankinter.com"
+    },
+    {
+      "label": "chase",
+      "category": "banking",
+      "domain": "chase.com",
+      "url": "https://www.chase.com"
+    },
+    {
+      "label": "hsbc",
+      "category": "banking",
+      "domain": "hsbc.com",
+      "url": "https://www.hsbc.com"
+    },
+    {
+      "label": "barclays",
+      "category": "banking",
+      "domain": "barclays.co.uk",
+      "url": "https://www.barclays.co.uk"
+    },
+    {
+      "label": "paypal",
+      "category": "banking",
+      "domain": "paypal.com",
+      "url": "https://www.paypal.com"
+    },
+    {
+      "label": "deutsche_bank",
+      "category": "banking",
+      "domain": "db.com",
+      "url": "https://www.db.com"
+    },
+    {
+      "label": "ine",
+      "category": "public_admin",
+      "domain": "ine.es",
+      "url": "https://www.ine.es"
+    },
+    {
+      "label": "boe",
+      "category": "public_admin",
+      "domain": "boe.es",
+      "url": "https://www.boe.es"
+    },
+    {
+      "label": "aeat",
+      "category": "public_admin",
+      "domain": "agenciatributaria.gob.es",
+      "url": "https://www.agenciatributaria.gob.es"
+    },
+    {
+      "label": "sepe",
+      "category": "public_admin",
+      "domain": "sepe.es",
+      "url": "https://www.sepe.es"
+    },
+    {
+      "label": "administracion_es",
+      "category": "public_admin",
+      "domain": "administracion.gob.es",
+      "url": "https://administracion.gob.es"
+    },
+    {
+      "label": "europa_eu",
+      "category": "public_admin",
+      "domain": "europa.eu",
+      "url": "https://europa.eu"
+    },
+    {
+      "label": "worldbank",
+      "category": "public_admin",
+      "domain": "worldbank.org",
+      "url": "https://www.worldbank.org"
+    },
+    {
+      "label": "gov_uk",
+      "category": "public_admin",
+      "domain": "gov.uk",
+      "url": "https://www.gov.uk"
+    },
+    {
+      "label": "usa_gov",
+      "category": "public_admin",
+      "domain": "usa.gov",
+      "url": "https://www.usa.gov"
+    },
+    {
+      "label": "canada_gov",
+      "category": "public_admin",
+      "domain": "canada.ca",
+      "url": "https://www.canada.ca"
+    },
+    {
+      "label": "wikipedia",
+      "category": "education",
+      "domain": "wikipedia.org",
+      "url": "https://www.wikipedia.org"
+    },
+    {
+      "label": "khanacademy",
+      "category": "education",
+      "domain": "khanacademy.org",
+      "url": "https://www.khanacademy.org"
+    },
+    {
+      "label": "coursera",
+      "category": "education",
+      "domain": "coursera.org",
+      "url": "https://www.coursera.org"
+    },
+    {
+      "label": "edx",
+      "category": "education",
+      "domain": "edx.org",
+      "url": "https://www.edx.org"
+    },
+    {
+      "label": "mit",
+      "category": "education",
+      "domain": "mit.edu",
+      "url": "https://www.mit.edu"
+    },
+    {
+      "label": "stanford",
+      "category": "education",
+      "domain": "stanford.edu",
+      "url": "https://www.stanford.edu"
+    },
+    {
+      "label": "harvard",
+      "category": "education",
+      "domain": "harvard.edu",
+      "url": "https://www.harvard.edu"
+    },
+    {
+      "label": "uned",
+      "category": "education",
+      "domain": "uned.es",
+      "url": "https://www.uned.es"
+    },
+    {
+      "label": "upm",
+      "category": "education",
+      "domain": "upm.es",
+      "url": "https://www.upm.es"
+    },
+    {
+      "label": "uc3m",
+      "category": "education",
+      "domain": "uc3m.es",
+      "url": "https://www.uc3m.es"
+    },
+    {
+      "label": "amazon",
+      "category": "ecommerce",
+      "domain": "amazon.com",
+      "url": "https://www.amazon.com"
+    },
+    {
+      "label": "amazon_es",
+      "category": "ecommerce",
+      "domain": "amazon.es",
+      "url": "https://www.amazon.es"
+    },
+    {
+      "label": "ebay",
+      "category": "ecommerce",
+      "domain": "ebay.com",
+      "url": "https://www.ebay.com"
+    },
+    {
+      "label": "aliexpress",
+      "category": "ecommerce",
+      "domain": "aliexpress.com",
+      "url": "https://www.aliexpress.com"
+    },
+    {
+      "label": "etsy",
+      "category": "ecommerce",
+      "domain": "etsy.com",
+      "url": "https://www.etsy.com"
+    },
+    {
+      "label": "otto_de",
+      "category": "ecommerce",
+      "domain": "otto.de",
+      "url": "https://www.otto.de"
+    },
+    {
+      "label": "walmart",
+      "category": "ecommerce",
+      "domain": "walmart.com",
+      "url": "https://www.walmart.com"
+    },
+    {
+      "label": "mediamarkt",
+      "category": "ecommerce",
+      "domain": "mediamarkt.es",
+      "url": "https://www.mediamarkt.es"
+    },
+    {
+      "label": "pccomponentes",
+      "category": "ecommerce",
+      "domain": "pccomponentes.com",
+      "url": "https://www.pccomponentes.com"
+    },
+    {
+      "label": "mercadona",
+      "category": "ecommerce",
+      "domain": "mercadona.es",
+      "url": "https://www.mercadona.es"
+    },
+    {
+      "label": "github",
+      "category": "technology",
+      "domain": "github.com",
+      "url": "https://github.com"
+    },
+    {
+      "label": "stackoverflow",
+      "category": "technology",
+      "domain": "stackoverflow.com",
+      "url": "https://stackoverflow.com"
+    },
+    {
+      "label": "mdn",
+      "category": "technology",
+      "domain": "developer.mozilla.org",
+      "url": "https://developer.mozilla.org"
+    },
+    {
+      "label": "python",
+      "category": "technology",
+      "domain": "python.org",
+      "url": "https://www.python.org"
+    },
+    {
+      "label": "techcrunch",
+      "category": "technology",
+      "domain": "techcrunch.com",
+      "url": "https://techcrunch.com"
+    },
+    {
+      "label": "wired",
+      "category": "technology",
+      "domain": "wired.com",
+      "url": "https://www.wired.com"
+    },
+    {
+      "label": "arstechnica",
+      "category": "technology",
+      "domain": "arstechnica.com",
+      "url": "https://arstechnica.com"
+    },
+    {
+      "label": "hackernews",
+      "category": "technology",
+      "domain": "news.ycombinator.com",
+      "url": "https://news.ycombinator.com"
+    },
+    {
+      "label": "theverge",
+      "category": "technology",
+      "domain": "theverge.com",
+      "url": "https://www.theverge.com"
+    },
+    {
+      "label": "cloudflare_blog",
+      "category": "technology",
+      "domain": "blog.cloudflare.com",
+      "url": "https://blog.cloudflare.com"
+    },
+    {
+      "label": "twitter",
+      "category": "social_media",
+      "domain": "x.com",
+      "url": "https://x.com"
+    },
+    {
+      "label": "reddit",
+      "category": "social_media",
+      "domain": "reddit.com",
+      "url": "https://www.reddit.com"
+    },
+    {
+      "label": "linkedin",
+      "category": "social_media",
+      "domain": "linkedin.com",
+      "url": "https://www.linkedin.com"
+    },
+    {
+      "label": "instagram",
+      "category": "social_media",
+      "domain": "instagram.com",
+      "url": "https://www.instagram.com"
+    },
+    {
+      "label": "facebook",
+      "category": "social_media",
+      "domain": "facebook.com",
+      "url": "https://www.facebook.com"
+    },
+    {
+      "label": "tiktok",
+      "category": "social_media",
+      "domain": "tiktok.com",
+      "url": "https://www.tiktok.com"
+    },
+    {
+      "label": "pinterest",
+      "category": "social_media",
+      "domain": "pinterest.com",
+      "url": "https://www.pinterest.com"
+    },
+    {
+      "label": "mastodon",
+      "category": "social_media",
+      "domain": "mastodon.social",
+      "url": "https://mastodon.social"
+    },
+    {
+      "label": "tumblr",
+      "category": "social_media",
+      "domain": "tumblr.com",
+      "url": "https://www.tumblr.com"
+    },
+    {
+      "label": "discord",
+      "category": "social_media",
+      "domain": "discord.com",
+      "url": "https://discord.com"
+    },
+    {
+      "label": "youtube",
+      "category": "streaming",
+      "domain": "youtube.com",
+      "url": "https://www.youtube.com"
+    },
+    {
+      "label": "netflix",
+      "category": "streaming",
+      "domain": "netflix.com",
+      "url": "https://www.netflix.com"
+    },
+    {
+      "label": "spotify",
+      "category": "streaming",
+      "domain": "spotify.com",
+      "url": "https://www.spotify.com"
+    },
+    {
+      "label": "twitch",
+      "category": "streaming",
+      "domain": "twitch.tv",
+      "url": "https://www.twitch.tv"
+    },
+    {
+      "label": "primevideo",
+      "category": "streaming",
+      "domain": "primevideo.com",
+      "url": "https://www.primevideo.com"
+    },
+    {
+      "label": "disneyplus",
+      "category": "streaming",
+      "domain": "disneyplus.com",
+      "url": "https://www.disneyplus.com"
+    },
+    {
+      "label": "max_hbo",
+      "category": "streaming",
+      "domain": "max.com",
+      "url": "https://www.max.com"
+    },
+    {
+      "label": "imdb",
+      "category": "streaming",
+      "domain": "imdb.com",
+      "url": "https://www.imdb.com"
+    },
+    {
+      "label": "rtve",
+      "category": "streaming",
+      "domain": "rtve.es",
+      "url": "https://www.rtve.es"
+    },
+    {
+      "label": "soundcloud",
+      "category": "streaming",
+      "domain": "soundcloud.com",
+      "url": "https://soundcloud.com"
+    },
+    {
+      "label": "webmd",
+      "category": "health",
+      "domain": "webmd.com",
+      "url": "https://www.webmd.com"
+    },
+    {
+      "label": "clevelandclinic",
+      "category": "health",
+      "domain": "clevelandclinic.org",
+      "url": "https://www.clevelandclinic.org"
+    },
+    {
+      "label": "medlineplus",
+      "category": "health",
+      "domain": "medlineplus.gov",
+      "url": "https://medlineplus.gov"
+    },
+    {
+      "label": "sanidad",
+      "category": "health",
+      "domain": "sanidad.gob.es",
+      "url": "https://www.sanidad.gob.es"
+    },
+    {
+      "label": "nhs",
+      "category": "health",
+      "domain": "nhs.uk",
+      "url": "https://www.nhs.uk"
+    },
+    {
+      "label": "healthline",
+      "category": "health",
+      "domain": "healthline.com",
+      "url": "https://www.healthline.com"
+    },
+    {
+      "label": "nih",
+      "category": "health",
+      "domain": "nih.gov",
+      "url": "https://www.nih.gov"
+    },
+    {
+      "label": "who",
+      "category": "health",
+      "domain": "who.int",
+      "url": "https://www.who.int"
+    },
+    {
+      "label": "cdc",
+      "category": "health",
+      "domain": "cdc.gov",
+      "url": "https://www.cdc.gov"
+    },
+    {
+      "label": "medscape",
+      "category": "health",
+      "domain": "medscape.com",
+      "url": "https://www.medscape.com"
+    },
+    {
+      "label": "ietf",
+      "category": "standards",
+      "domain": "ietf.org",
+      "url": "https://www.ietf.org"
+    },
+    {
+      "label": "w3c",
+      "category": "standards",
+      "domain": "w3.org",
+      "url": "https://www.w3.org"
+    },
+    {
+      "label": "iso",
+      "category": "standards",
+      "domain": "iso.org",
+      "url": "https://www.iso.org"
+    },
+    {
+      "label": "icann",
+      "category": "standards",
+      "domain": "icann.org",
+      "url": "https://www.icann.org"
+    },
+    {
+      "label": "iana",
+      "category": "standards",
+      "domain": "iana.org",
+      "url": "https://www.iana.org"
+    },
+    {
+      "label": "rfc_editor",
+      "category": "standards",
+      "domain": "rfc-editor.org",
+      "url": "https://www.rfc-editor.org"
+    },
+    {
+      "label": "ecma",
+      "category": "standards",
+      "domain": "ecma-international.org",
+      "url": "https://www.ecma-international.org"
+    },
+    {
+      "label": "owasp",
+      "category": "standards",
+      "domain": "owasp.org",
+      "url": "https://owasp.org"
+    },
+    {
+      "label": "mozilla_foundation",
+      "category": "standards",
+      "domain": "foundation.mozilla.org",
+      "url": "https://foundation.mozilla.org"
+    },
+    {
+      "label": "eff",
+      "category": "standards",
+      "domain": "eff.org",
+      "url": "https://www.eff.org"
+    }
+  ]
+}

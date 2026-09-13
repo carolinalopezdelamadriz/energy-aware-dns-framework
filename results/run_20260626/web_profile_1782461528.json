@@ -1,0 +1,155 @@
+{
+  "url": "https://www.ietf.org",
+  "by_type": {
+    "Stylesheet": 53224,
+    "Image": 610963,
+    "Script": 111765,
+    "Document": 9382,
+    "Font": 172797,
+    "Ping": 0,
+    "XHR": 2399,
+    "Other": 8390
+  },
+  "by_origin": {
+    "first_party": 945930,
+    "tracker_or_ads": 22990
+  },
+  "total_bytes": 968920,
+  "resources": [
+    {
+      "requestId": "45964.4",
+      "type": "Stylesheet",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/static/dist/main.433f4b9c3ff4.css",
+      "encodedDataLength": 52338
+    },
+    {
+      "requestId": "45964.2",
+      "type": "Stylesheet",
+      "origin_class": "first_party",
+      "url": "https://static.ietf.org/fonts/inter/import.css",
+      "encodedDataLength": 886
+    },
+    {
+      "requestId": "45964.5",
+      "type": "Image",
+      "origin_class": "first_party",
+      "url": "https://static.ietf.org/logos/ietf.svg",
+      "encodedDataLength": 2001
+    },
+    {
+      "requestId": "45964.6",
+      "type": "Image",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/media/images/ietf-logo.width-600.jpg",
+      "encodedDataLength": 25303
+    },
+    {
+      "requestId": "45964.3",
+      "type": "Script",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/static/dist/main.afb7723a637c.js",
+      "encodedDataLength": 79702
+    },
+    {
+      "requestId": "77B240B4EF100A2C4B2EBDAA5E57E3BE",
+      "type": "Document",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/",
+      "encodedDataLength": 9382
+    },
+    {
+      "requestId": "45964.9",
+      "type": "Image",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/media/images/IMG_15.width-600.jpg",
+      "encodedDataLength": 41842
+    },
+    {
+      "requestId": "45964.8",
+      "type": "Image",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/media/images/_MG_4832.width-600.jpg",
+      "encodedDataLength": 49298
+    },
+    {
+      "requestId": "45964.95",
+      "type": "Image",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/media/images/Screenshot_2026-04-27_at_14.06.52.max-4000x4000.png",
+      "encodedDataLength": 401059
+    },
+    {
+      "requestId": "45964.7",
+      "type": "Image",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/media/images/things.width-600.jpg",
+      "encodedDataLength": 30650
+    },
+    {
+      "requestId": "45964.10",
+      "type": "Image",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/media/images/vienna.height-245.jpg",
+      "encodedDataLength": 46275
+    },
+    {
+      "requestId": "45964.11",
+      "type": "Image",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/media/images/111-SanFrancisco.height-245.jpg",
+      "encodedDataLength": 14535
+    },
+    {
+      "requestId": "45964.78",
+      "type": "Font",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/static/dist/92ea18a81d737146ff044ddb52010366.84a4d15b9e44.woff2",
+      "encodedDataLength": 134331
+    },
+    {
+      "requestId": "45964.21",
+      "type": "Font",
+      "origin_class": "first_party",
+      "url": "https://static.ietf.org/fonts/inter/inter-latin.woff2",
+      "encodedDataLength": 38466
+    },
+    {
+      "requestId": "45964.96",
+      "type": "Script",
+      "origin_class": "tracker_or_ads",
+      "url": "https://analytics.ietf.org/matomo.js",
+      "encodedDataLength": 22990
+    },
+    {
+      "requestId": "45964.97",
+      "type": "Script",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/cdn-cgi/challenge-platform/h/b/scripts/jsd/25e6c66701a0/main.js?",
+      "encodedDataLength": 9073
+    },
+    {
+      "requestId": "45964.98",
+      "type": "Ping",
+      "origin_class": "tracker_or_ads",
+      "url": "https://analytics.ietf.org/matomo.php?action_name=IETF%20%7C%20Internet%20Engineering%20Task%20Force&idsite=1&rec=1&r=050385&h=10&m=12&s=22&url=https%3A%2F%2Fwww.ietf.org%2F&_id=&_idn=1&send_image=0&_refts=0&pv_id=Gt8R9a&pf_net=34&pf_srv=30&pf_tfr=6&pf_dm1=2541&uadata=%7B%22formFactors%22%3A%5B%22Desktop%22%5D%2C%22fullVersionList%22%3A%5B%7B%22brand%22%3A%22Google%20Chrome%22%2C%22version%22%3A%22149.0.7827.115%22%7D%2C%7B%22brand%22%3A%22Chromium%22%2C%22version%22%3A%22149.0.7827.115%22%7D%2C%7B%22brand%22%3A%22Not)A%3BBrand%22%2C%22version%22%3A%2224.0.0.0%22%7D%5D%2C%22mobile%22%3Afalse%2C%22model%22%3A%22%22%2C%22platform%22%3A%22macOS%22%2C%22platformVersion%22%3A%2215.7.0%22%7D&pdf=1&qt=0&realp=0&wma=0&fla=0&java=0&ag=0&cookie=1&res=1440x900",
+      "encodedDataLength": 0
+    },
+    {
+      "requestId": "45964.99",
+      "type": "XHR",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/cdn-cgi/challenge-platform/h/b/jsd/oneshot/25e6c66701a0/0.6983829936425557:1782460820:KTdItKzHFXxoWwq1BKkweXE1tMQ-ooC-vE7vJ3V3aOs/a11abf0e39660cdb",
+      "encodedDataLength": 2399
+    },
+    {
+      "requestId": "45964.100",
+      "type": "Other",
+      "origin_class": "first_party",
+      "url": "https://www.ietf.org/favicon.ico",
+      "encodedDataLength": 8390
+    }
+  ],
+  "site_label": "ietf",
+  "category": "standards"
+}

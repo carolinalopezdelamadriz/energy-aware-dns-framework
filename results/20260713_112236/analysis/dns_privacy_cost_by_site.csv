@@ -1,0 +1,11 @@
+connection_mode,site_label,category,unique_domains_resolved,dns_overhead_per_resolution_bytes,dns_privacy_cost_bytes,dns_privacy_cost_pct_of_page,data_quality_flag
+cold_start,bbc,news,17,7577.5,128817.5,3.8877152212950246,
+cold_start,santander,banking,4,7577.5,30310.0,0.039950788431643555,
+cold_start,ine,public_admin,4,7577.5,30310.0,1.2243526200176604,
+cold_start,wikipedia,education,1,7577.5,7577.5,2.3727438970928993,statistical_outlier
+cold_start,amazon,ecommerce,7,7577.5,53042.5,0.8211021352448136,
+cold_start,github,technology,4,7577.5,30310.0,0.5234353453732098,
+cold_start,twitter,social_media,5,7577.5,37887.5,1.085092440854407,
+cold_start,youtube,streaming,6,7577.5,45465.0,1.0415270690514236,
+cold_start,webmd,health,13,7577.5,98507.5,3.807813967080572,
+cold_start,ietf,standards,3,7577.5,22732.5,1.7085463770849976,

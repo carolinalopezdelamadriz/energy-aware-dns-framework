@@ -1,0 +1,6 @@
+label,category,domain,url
+bbc,news,bbc.com,https://www.bbc.com
+wikipedia,knowledge,wikipedia.org,https://www.wikipedia.org
+github,developer,github.com,https://github.com
+python,developer,python.org,https://www.python.org
+ietf,standards,ietf.org,https://www.ietf.org

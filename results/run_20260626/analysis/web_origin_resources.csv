@@ -1,0 +1,12 @@
+site_label,category,url,origin_class,bytes,pct_of_cdp_bytes
+bbc,news,https://www.bbc.com,first_party,116784,4.645431061984428
+bbc,news,https://www.bbc.com,third_party,2208452,87.84774900415839
+bbc,news,https://www.bbc.com,tracker_or_ads,188718,7.506819933857183
+wikipedia,knowledge,https://www.wikipedia.org,first_party,102214,100.0
+github,developer,https://github.com,third_party,3886050,96.40062652158964
+github,developer,https://github.com,first_party,145096,3.599373478410358
+python,developer,https://www.python.org,first_party,375364,73.39140295822702
+python,developer,https://www.python.org,third_party,112090,21.915906580246553
+python,developer,https://www.python.org,tracker_or_ads,24001,4.692690461526429
+ietf,standards,https://www.ietf.org,first_party,945930,97.62725508813938
+ietf,standards,https://www.ietf.org,tracker_or_ads,22990,2.3727449118606283

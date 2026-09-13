@@ -1,0 +1,53 @@
+{
+  "run_id": "run_20260626",
+  "started_at": "2026-06-26T10:08:18+0200",
+  "python": "3.11.14 (main, Oct  9 2025, 16:16:55) [Clang 16.0.0 (clang-1600.0.26.6)]",
+  "platform": "macOS-15.7-x86_64-i386-64bit",
+  "config": {
+    "sites_file": "data/sites_sample.csv",
+    "protocols": [
+      "dns",
+      "doh",
+      "doq"
+    ],
+    "dns_repetitions": 5,
+    "web_repetitions": 1,
+    "interface": "en0",
+    "use_cdp": true,
+    "skip_dns": false,
+    "skip_web": false,
+    "doq_resolver": "quad9"
+  },
+  "sites": [
+    {
+      "label": "bbc",
+      "category": "news",
+      "domain": "bbc.com",
+      "url": "https://www.bbc.com"
+    },
+    {
+      "label": "wikipedia",
+      "category": "knowledge",
+      "domain": "wikipedia.org",
+      "url": "https://www.wikipedia.org"
+    },
+    {
+      "label": "github",
+      "category": "developer",
+      "domain": "github.com",
+      "url": "https://github.com"
+    },
+    {
+      "label": "python",
+      "category": "developer",
+      "domain": "python.org",
+      "url": "https://www.python.org"
+    },
+    {
+      "label": "ietf",
+      "category": "standards",
+      "domain": "ietf.org",
+      "url": "https://www.ietf.org"
+    }
+  ]
+}

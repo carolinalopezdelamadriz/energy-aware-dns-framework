@@ -1,0 +1,12 @@
+{
+  "run_dir": "results/run_20260626",
+  "dns_rows": 15,
+  "web_rows": 5,
+  "profiles": 5,
+  "generated_plots": [
+    "fig_dns_avg_bytes.png",
+    "fig_web_traffic_comparison.png",
+    "fig_web_origin_bytes.png",
+    "fig_dashboard.png"
+  ]
+}

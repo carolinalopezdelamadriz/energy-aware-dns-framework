@@ -1,0 +1,19 @@
+{
+  "run_dir": "results/20260709_001914",
+  "dns_rows": 300,
+  "web_rows": 300,
+  "web_rows_flagged": 31,
+  "profiles": 300,
+  "generated_plots": [
+    "fig_dns_avg_bytes.png",
+    "fig_dns_co2_by_protocol.png",
+    "fig_overhead_breakdown.png",
+    "fig_burst_patterns.png",
+    "fig_web_overhead_scatter.png",
+    "fig_web_bytes_by_category.png",
+    "fig_web_overhead_by_category.png",
+    "fig_web_origin_bytes.png",
+    "fig_cfp_by_category.png",
+    "fig_dashboard.png"
+  ]
+}
